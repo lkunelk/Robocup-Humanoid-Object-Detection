@@ -1,9 +1,12 @@
 import torch
 import numpy as np
-import model
+import model, my_dataset
+import matplotlib.pyplot as plt
+import cv2
 
-m = model.CNN()
-x = np.ones((1, 1, 3, 3))
-x = torch.Tensor(x)
-y = m.forward(x)
-print(y)
+l = my_dataset.initialize_loader()
+img, y = next(iter(l))
+print(img.shape)
+plt.figure()
+plt.imshow(img[0].permute(1,2,0))
+plt.show()
