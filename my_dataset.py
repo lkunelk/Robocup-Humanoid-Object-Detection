@@ -3,6 +3,7 @@ import os
 import cv2
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
 train_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/train'
 test_path = None
@@ -15,10 +16,30 @@ def initialize_loader(train_batch_size=64):
     return train_loader
 
 
+def display_image(img, y):
+    '''
+    :param img: torch tensor channelxWxH
+    :param y: bounding rectangle 4-vector [x1, y1, x2, y2]
+    :return: None
+    '''
+    img = img.numpy()
+    img = np.rollaxis(img, 0, 3)  # HxWxchannel
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    pt1 = y[:2].numpy()
+    pt2 = y[2:].numpy()
+    img = cv2.rectangle(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    plt.figure()
+    plt.imshow(img)
+    plt.show()
+
+
+
 def read_image(path):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = np.rollaxis(img, 2) # flip to channel*W*H
+    img = np.rollaxis(img, 2)  # flip to channel*W*H
     return img
 
 
