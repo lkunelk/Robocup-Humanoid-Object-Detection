@@ -10,11 +10,14 @@ negative_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/negative'
 test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(train_batch_size=64):
-    folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    train_dataset = MyDataSet(folders)
+def initialize_loader(train_batch_size=64, validation_batch_size=64):
+    train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    test_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    train_dataset = MyDataSet(train_folders)
+    valid_dataset = MyDataSet(test_folders)
     train_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
-    return train_loader
+    test_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
+    return train_loader, test_loader
 
 
 def display_image(img, y):
