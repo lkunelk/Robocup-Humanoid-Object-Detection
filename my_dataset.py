@@ -6,7 +6,8 @@ import torch
 import matplotlib.pyplot as plt
 
 train_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/train'
-test_path = None
+negative_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/negative'
+test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(train_batch_size=64):
@@ -35,7 +36,6 @@ def display_image(img, y):
     plt.show()
 
 
-
 def read_image(path):
     img = cv2.imread(path)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -45,9 +45,10 @@ def read_image(path):
 
 class MyDataSet(Dataset):
     def __init__(self, file_paths):
-        print(train_path)
         self.file_paths = file_paths
         self.valid_filenames = []
+
+        # add paths for train data with labels
         for path in file_paths:
             # find txt file with labels
             file_labels = None
@@ -63,6 +64,11 @@ class MyDataSet(Dataset):
                         assert label == 'label::ball'
                         img_path = os.path.join(path, img)
                         self.valid_filenames.append((img_path, [int(x1), int(y1), int(x2), int(y2)]))
+
+        # add paths for negative examples (no ball in picture)
+        for file in os.listdir(negative_path):
+            img_path = os.path.join(negative_path, file)
+            self.valid_filenames.append((img_path, [0, 0, 0, 0]))
 
     def __len__(self):
         return len(self.valid_filenames)
