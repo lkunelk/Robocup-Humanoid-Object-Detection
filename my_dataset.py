@@ -30,17 +30,10 @@ def display_image(img, y):
     '''
     img = img.numpy()
     img = np.rollaxis(img, 0, 3)  # HxWxchannel
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    pt1 = y[:2].numpy()
-    pt2 = y[2:].numpy()
-    center = (pt1 + pt2)/2
-    size = (pt2 - pt1)/2
-    img = cv2.rectangle(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
-    img = cv2.ellipse(img, (int(center[0]), int(center[1])), (int(size[0]), int(size[1])), 0, 0, 360, (0, 255, 0), 1)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    plt.figure()
-    plt.imshow(img)
+    fig, ax = plt.subplots(1, 2)
+    ax[0].imshow(img)
+    ax[1].imshow(y, cmap='gray')
     plt.show()
 
 
@@ -50,7 +43,6 @@ def read_image(path):
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     # img = np.rollaxis(img, 2)  # flip to channel*W*H
     return img
-
 
 
 class MyDataSet(Dataset):
@@ -74,26 +66,34 @@ class MyDataSet(Dataset):
                         label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
                         assert label == 'label::ball'
                         img_path = os.path.join(path, img)
-                        self.valid_filenames.append((img_path, [int(x1), int(y1), int(x2), int(y2)]))
+                        self.valid_filenames.append([
+                            img_path,
+                            [(int(x1), int(y1)), (int(x2), int(y2))]
+                        ])
 
         # add paths for negative examples (no ball in picture)
         for file in os.listdir(negative_path):
             img_path = os.path.join(negative_path, file)
-            self.valid_filenames.append((img_path, [0, 0, 0, 0]))
+            self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
 
     def __len__(self):
         return len(self.valid_filenames)
 
     def __getitem__(self, index):
         img_path, label = self.valid_filenames[index]
-        # print(index)
         img = read_image(img_path)
-        # print(img.shape)
-        # img = cv2.resize(img, (3, 150, 200))
+
         if self.transform:
             img = self.transform(img)
         img = np.array(img)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        mask = np.zeros((150, 200))
+        pt1 = np.array(label[0]) / 4
+        pt2 = np.array(label[1]) / 4
+        center = tuple(((pt1 + pt2) / 2).astype(np.int))
+        size = tuple(((pt2 - pt1) / 2).astype(np.int))
+        if not size == (0, 0):
+            mask = cv2.ellipse(mask, center, size, 0, 0, 360, (255), -1)
+
         img = np.rollaxis(img, 2)  # flip to channel*W*H
-        label = np.array(label)
-        return img, label
+        return img, mask
