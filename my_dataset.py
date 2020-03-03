@@ -2,18 +2,20 @@ from torch.utils.data import Dataset, DataLoader
 import os
 import cv2
 import numpy as np
-import torch
+import torchvision
 import matplotlib.pyplot as plt
+from PIL import Image
 
 train_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/train'
 negative_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/negative'
 test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(train_batch_size=64, validation_batch_size=64):
+def initialize_loader(train_batch_size=2, validation_batch_size=64):
+    transform = torchvision.transforms.Resize((150, 200))
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    train_dataset = MyDataSet(train_folders)
+    train_dataset = MyDataSet(train_folders, transform=transform)
     valid_dataset = MyDataSet(test_folders)
     train_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
     test_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
@@ -31,7 +33,10 @@ def display_image(img, y):
     img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     pt1 = y[:2].numpy()
     pt2 = y[2:].numpy()
-    img = cv2.rectangle(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 2)
+    center = (pt1 + pt2)/2
+    size = (pt2 - pt1)/2
+    img = cv2.rectangle(img, (pt1[0], pt1[1]), (pt2[0], pt2[1]), (0, 0, 255), 1)
+    img = cv2.ellipse(img, (int(center[0]), int(center[1])), (int(size[0]), int(size[1])), 0, 0, 360, (0, 255, 0), 1)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     plt.figure()
@@ -40,16 +45,19 @@ def display_image(img, y):
 
 
 def read_image(path):
-    img = cv2.imread(path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = np.rollaxis(img, 2)  # flip to channel*W*H
+    img = Image.open(path)
+    # img = resize(img, (150, 200, 3))
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = np.rollaxis(img, 2)  # flip to channel*W*H
     return img
 
 
+
 class MyDataSet(Dataset):
-    def __init__(self, file_paths):
+    def __init__(self, file_paths, transform=None):
         self.file_paths = file_paths
         self.valid_filenames = []
+        self.transform = transform
 
         # add paths for train data with labels
         for path in file_paths:
@@ -78,6 +86,14 @@ class MyDataSet(Dataset):
 
     def __getitem__(self, index):
         img_path, label = self.valid_filenames[index]
+        # print(index)
         img = read_image(img_path)
+        # print(img.shape)
+        # img = cv2.resize(img, (3, 150, 200))
+        if self.transform:
+            img = self.transform(img)
+        img = np.array(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = np.rollaxis(img, 2)  # flip to channel*W*H
         label = np.array(label)
         return img, label
