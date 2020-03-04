@@ -13,12 +13,24 @@ test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
 
 def initialize_loader(train_batch_size=2, validation_batch_size=64):
     transform = torchvision.transforms.Resize((150, 200))
+
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    test_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    train_dataset = MyDataSet(train_folders, transform=transform)
-    valid_dataset = MyDataSet(test_folders)
-    train_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
-    test_loader = DataLoader(train_dataset, batch_size=train_batch_size, num_workers=4, shuffle=True, drop_last=True)
+    test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
+
+    train_dataset = MyDataSet(train_folders, transform=transform, train=True)
+    test_dataset = MyDataSet(test_folders, transform=transform, train=False)
+
+    train_loader = DataLoader(train_dataset,
+                              batch_size=train_batch_size,
+                              num_workers=4,
+                              shuffle=True,
+                              drop_last=True)
+    test_loader = DataLoader(test_dataset,
+                             batch_size=train_batch_size,
+                             num_workers=4,
+                             shuffle=True,
+                             drop_last=True)
+
     return train_loader, test_loader
 
 
@@ -46,7 +58,7 @@ def read_image(path):
 
 
 class MyDataSet(Dataset):
-    def __init__(self, file_paths, transform=None):
+    def __init__(self, file_paths, transform=None, train=False):
         self.file_paths = file_paths
         self.valid_filenames = []
         self.transform = transform
@@ -72,9 +84,10 @@ class MyDataSet(Dataset):
                         ])
 
         # add paths for negative examples (no ball in picture)
-        for file in os.listdir(negative_path):
-            img_path = os.path.join(negative_path, file)
-            self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
+        if train:
+            for file in os.listdir(negative_path):
+                img_path = os.path.join(negative_path, file)
+                self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
 
     def __len__(self):
         return len(self.valid_filenames)
