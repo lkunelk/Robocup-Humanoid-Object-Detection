@@ -37,7 +37,6 @@ def train(model,
 
         losses = []
         for i, (images, masks) in enumerate(train_loader):
-            print("batch", i)
             images = images.cuda()
             masks = masks.cuda()
 
@@ -49,5 +48,9 @@ def train(model,
             optimizer.step()
             losses.append(loss.data.item())
 
+            if i == 200:
+                print()
+                break
+
         time_elapsed = time.time() - start_train
-        print('Epoch [{}/{}], Loss: {.4}, Time (s): {}'.format(epoch + 1, epochs, train_loss, time_elapsed))
+        print('Epoch [{}/{}], Loss: {}, Time (s): {}'.format(epoch + 1, epochs, losses[-1], time_elapsed), end='')
