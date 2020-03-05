@@ -95,8 +95,7 @@ class CNN(nn.Module):
         )
 
         self.conv13 = nn.Sequential(
-            nn.Conv2d(1 * num_features, 1, kernel, padding=pad),
-            nn.LeakyReLU()
+            nn.Conv2d(1 * num_features, 1, kernel, padding=pad)
         )
 
     def forward(self, x):
@@ -124,5 +123,7 @@ class CNN(nn.Module):
         x = self.conv11(x)
         x = self.conv12(x)
         x = self.conv13(x)
+
+        x = x.clamp(0.0, 1.0)
 
         return x

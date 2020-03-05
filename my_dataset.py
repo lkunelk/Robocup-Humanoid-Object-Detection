@@ -11,8 +11,8 @@ negative_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/negative'
 test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(train_batch_size=2, validation_batch_size=64):
-    transform = torchvision.transforms.Resize((150, 200))
+def initialize_loader(train_batch_size, validation_batch_size):
+    transform = torchvision.transforms.Resize((152, 200))
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
@@ -100,7 +100,7 @@ class MyDataSet(Dataset):
             img = self.transform(img)
         img = np.array(img)
 
-        mask = np.zeros((150, 200))
+        mask = np.zeros((152, 200, 1))
         pt1 = np.array(label[0]) / 4
         pt2 = np.array(label[1]) / 4
         center = tuple(((pt1 + pt2) / 2).astype(np.int))
@@ -108,5 +108,6 @@ class MyDataSet(Dataset):
         if not size == (0, 0):
             mask = cv2.ellipse(mask, center, size, 0, 0, 360, (255), -1)
 
+        mask = np.rollaxis(mask, 2)
         img = np.rollaxis(img, 2)  # flip to channel*W*H
         return img, mask
