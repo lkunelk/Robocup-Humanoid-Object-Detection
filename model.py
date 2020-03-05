@@ -96,7 +96,6 @@ class CNN(nn.Module):
 
         self.conv13 = nn.Sequential(
             nn.Conv2d(1 * num_features, 1, kernel, padding=pad),
-            nn.BatchNorm2d(1 * num_features),
             nn.LeakyReLU()
         )
 
@@ -124,5 +123,6 @@ class CNN(nn.Module):
         x = torch.cat((conv1_out, x), 1)
         x = self.conv11(x)
         x = self.conv12(x)
+        x = self.conv13(x)
 
         return x
