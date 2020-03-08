@@ -6,9 +6,9 @@ import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
 
-train_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/train'
-negative_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/negative'
-test_path = '/home/nam/Desktop/bit-bots-ball-dataset-2018/test'
+train_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/train'
+negative_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/negative'
+test_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(train_batch_size, validation_batch_size):
@@ -84,10 +84,10 @@ class MyDataSet(Dataset):
                         ])
 
         # add paths for negative examples (no ball in picture)
-        if train:
-            for file in os.listdir(negative_path):
-                img_path = os.path.join(negative_path, file)
-                self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
+        # if train:
+        #     for file in os.listdir(negative_path):
+        #         img_path = os.path.join(negative_path, file)
+        #         self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
 
     def __len__(self):
         return len(self.valid_filenames)
