@@ -32,10 +32,10 @@ def initialize_loader(batch_size):
                               shuffle=True,
                               drop_last=True)
     valid_loader = DataLoader(valid_dataset,
-                             batch_size=batch_size,
-                             num_workers=4,
-                             shuffle=True,
-                             drop_last=True)
+                              batch_size=batch_size,
+                              num_workers=4,
+                              shuffle=True,
+                              drop_last=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=4,
@@ -48,11 +48,14 @@ def initialize_loader(batch_size):
 def display_image(img, y):
     '''
     :param img: torch tensor channelxWxH
-    :param y: bounding rectangle 4-vector [x1, y1, x2, y2]
+    :param y: grayscale mask representing ball location
     :return: None
     '''
     img = img.numpy()
     img = np.rollaxis(img, 0, 3)  # HxWxchannel
+
+    y = y.detach().numpy().reshape((152, 200))
+    # y = np.rollaxis(y, 0, 3)
 
     fig, ax = plt.subplots(1, 2)
     ax[0].imshow(img)
@@ -76,6 +79,7 @@ class MyDataSet(Dataset):
 
         # add paths for train data with labels
         for path in file_paths:
+            print(path)
             # find txt file with labels
             file_labels = None
             for file in os.listdir(path):
@@ -93,7 +97,7 @@ class MyDataSet(Dataset):
                             img_path,
                             [(int(x1), int(y1)), (int(x2), int(y2))]
                         ])
-
+            break  # DEBUG only read one folder for testing
         # add paths for negative examples (no ball in picture)
         # if train:
         #     for file in os.listdir(negative_path):

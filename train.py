@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 import torch
-from my_dataset import initialize_loader
+from my_dataset import initialize_loader, display_image
 
 
 def train_epoch():
@@ -63,20 +63,23 @@ def train(model,
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
-        # start_valid = time.time()
-        # valid_losses = []
-        # for images, masks in valid_loader:
-        #     images = images.cuda()
-        #     masks = masks.cuda()
-        #     predictions = model(images.float())
-        #     loss = torch.nn.functional.binary_cross_entropy(predictions, masks.float())
-        #     valid_losses.append(loss.data.item())
-        # valid_loss.append(np.sum(valid_losses) / len(valid_losses))
-        # time_elapsed = time.time() - start_valid
-        #
-        # print('valid loss: {}, validation time (s): {}'.format(
-        #     valid_loss[-1],
-        #     sum(batchload_times) / len(batchload_times),
-        #     time_elapsed))
+        start_valid = time.time()
+        valid_losses = []
+        for images, masks in valid_loader:
+            images = images.cuda()
+            masks = masks.cuda()
+            predictions = model(images.float())
+            loss = torch.nn.functional.binary_cross_entropy(predictions, masks.float())
+            valid_losses.append(loss.data.item())
+
+        display_image(images.cpu()[0], predictions.cpu()[0])
+
+        valid_loss.append(np.sum(valid_losses) / len(valid_losses))
+        time_elapsed = time.time() - start_valid
+
+        print('valid loss: {}, validation time (s): {}'.format(
+            valid_loss[-1],
+            sum(batchload_times) / len(batchload_times),
+            time_elapsed))
 
 
