@@ -7,7 +7,15 @@ import matplotlib.pyplot as plt
 import cv2
 
 if __name__ == '__main__':
-    model = CNN()
+    model = CNN(
+        kernel=3,
+        num_features=16,
+        dropout=0.5)
+
     model.apply(init_weights)
-    print(model.conv1[0].weight)
-    train.train(model)
+
+    train.train(
+        model,
+        learn_rate=0.01,
+        batch_size=64,
+        epochs=20)

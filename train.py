@@ -11,9 +11,9 @@ def train_epoch():
 
 
 def train(model,
-          learn_rate=0.001,
-          batch_size=50,
-          epochs=50):
+          learn_rate=0.01,
+          batch_size=64,
+          epochs=20):
     np.random.seed(1)
 
     # Save directory
@@ -22,6 +22,7 @@ def train(model,
         os.makedirs(save_dir)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+    criterion = torch.nn.BCEWithLogitsLoss()
 
     train_loader, valid_loader, test_loader = initialize_loader(batch_size)
     print('# of batches {} {} {}'.format(len(train_loader), len(valid_loader), len(test_loader)))
@@ -48,7 +49,7 @@ def train(model,
             optimizer.zero_grad()
 
             predictions = model(images.float())
-            loss = torch.nn.functional.binary_cross_entropy(predictions, masks.float())
+            loss = criterion(predictions.float(), masks.float())
             loss.backward()
             optimizer.step()
             losses.append(loss.data.item())
@@ -63,16 +64,17 @@ def train(model,
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
+        model.eval()
         start_valid = time.time()
         valid_losses = []
         for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
             predictions = model(images.float())
-            loss = torch.nn.functional.binary_cross_entropy(predictions, masks.float())
+            loss = criterion(predictions, masks.float())
             valid_losses.append(loss.data.item())
 
-        display_image(images.cpu()[0], predictions.cpu()[0])
+        display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0])
 
         valid_loss.append(np.sum(valid_losses) / len(valid_losses))
         time_elapsed = time.time() - start_valid
@@ -81,5 +83,3 @@ def train(model,
             valid_loss[-1],
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
-
-

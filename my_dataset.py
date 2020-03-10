@@ -45,7 +45,7 @@ def initialize_loader(batch_size):
     return train_loader, valid_loader, test_loader
 
 
-def display_image(img, y):
+def display_image(img, mask, y):
     '''
     :param img: torch tensor channelxWxH
     :param y: grayscale mask representing ball location
@@ -55,11 +55,15 @@ def display_image(img, y):
     img = np.rollaxis(img, 0, 3)  # HxWxchannel
 
     y = y.detach().numpy().reshape((152, 200))
-    # y = np.rollaxis(y, 0, 3)
 
-    fig, ax = plt.subplots(1, 2)
-    ax[0].imshow(img)
-    ax[1].imshow(y, cmap='gray')
+    mask = mask.numpy().reshape((152, 200))
+    print(np.amax(mask))
+
+    fig, ax = plt.subplots(2, 2)
+    ax[0, 0].imshow(img)
+    ax[0, 1].imshow(y, cmap='gray')
+    ax[1, 0].imshow(mask, cmap='gray')
+
     plt.show()
 
 
@@ -79,7 +83,7 @@ class MyDataSet(Dataset):
 
         # add paths for train data with labels
         for path in file_paths:
-            print(path)
+            # print(path)
             # find txt file with labels
             file_labels = None
             for file in os.listdir(path):
@@ -121,7 +125,7 @@ class MyDataSet(Dataset):
         center = tuple(((pt1 + pt2) / 2).astype(np.int))
         size = tuple(((pt2 - pt1) / 2).astype(np.int))
         if not size == (0, 0):
-            mask = cv2.ellipse(mask, center, size, 0, 0, 360, (255), -1)
+            mask = cv2.ellipse(mask, center, size, 0, 0, 360, (1), -1)
 
         mask = np.rollaxis(mask, 2)
         img = np.rollaxis(img, 2)  # flip to channel*W*H

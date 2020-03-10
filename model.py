@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 
+
 def init_weights(m):
     if type(m) == nn.Conv2d:
-        torch.nn.init.xavier_uniform(m.weight)
+        torch.nn.init.uniform_(m.weight, a=-0.001, b=0.001)
         m.bias.data.fill_(0.00)
 
+
 class CNN(nn.Module):
-    def __init__(self, kernel=3, num_features=16):
+    def __init__(self, kernel=3, num_features=16, dropout=0.5):
         super(CNN, self).__init__()
 
         pad = kernel // 2
@@ -24,12 +26,14 @@ class CNN(nn.Module):
 
         self.conv2 = nn.Sequential(
             nn.Conv2d(num_features, 2 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(2 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv3 = nn.Sequential(
             nn.Conv2d(2 * num_features, 2 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(2 * num_features),
             nn.LeakyReLU()
         )
@@ -41,12 +45,14 @@ class CNN(nn.Module):
         # concat 16 + 32
         self.conv4 = nn.Sequential(
             nn.Conv2d(3 * num_features, 4 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(4 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv5 = nn.Sequential(
             nn.Conv2d(4 * num_features, 4 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(4 * num_features),
             nn.LeakyReLU()
         )
@@ -54,12 +60,14 @@ class CNN(nn.Module):
         # concat 48 + 32
         self.conv6 = nn.Sequential(
             nn.Conv2d(7 * num_features, 8 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(8 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv7 = nn.Sequential(
             nn.Conv2d(8 * num_features, 8 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(8 * num_features),
             nn.LeakyReLU(),
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -68,18 +76,21 @@ class CNN(nn.Module):
         # concat 48 + 128
         self.conv8 = nn.Sequential(
             nn.Conv2d(11 * num_features, 4 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(4 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv9 = nn.Sequential(
             nn.Conv2d(4 * num_features, 2 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(2 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv10 = nn.Sequential(
             nn.Conv2d(2 * num_features, 2 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(2 * num_features),
             nn.LeakyReLU(),
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -88,12 +99,14 @@ class CNN(nn.Module):
         # concat 16 + 32
         self.conv11 = nn.Sequential(
             nn.Conv2d(3 * num_features, 1 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(1 * num_features),
             nn.LeakyReLU()
         )
 
         self.conv12 = nn.Sequential(
             nn.Conv2d(1 * num_features, 1 * num_features, kernel, padding=pad),
+            nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(1 * num_features),
             nn.LeakyReLU()
         )
@@ -128,6 +141,6 @@ class CNN(nn.Module):
         x = self.conv12(x)
         x = self.conv13(x)
 
-        x = x.clamp(0.0, 1.0)
+        # x = x.clamp(0.0, 1.0)
 
         return x
