@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 
+def init_weights(m):
+    if type(m) == nn.Conv2d:
+        torch.nn.init.xavier_uniform(m.weight)
+        m.bias.data.fill_(0.00)
 
 class CNN(nn.Module):
     def __init__(self, kernel=3, num_features=16):
