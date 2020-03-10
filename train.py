@@ -6,13 +6,13 @@ from my_dataset import initialize_loader
 
 
 def train_epoch():
-    #hello
+    # hello
     pass
+
 
 def train(model,
           learn_rate=0.001,
-          train_batch_size=100,
-          val_batch_size=64,
+          batch_size=50,
           epochs=50):
     np.random.seed(1)
 
@@ -23,8 +23,8 @@ def train(model,
 
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
 
-    train_loader, valid_loader = initialize_loader(train_batch_size, val_batch_size)
-    print('# of batches {}'.format(len(train_loader)))
+    train_loader, valid_loader, test_loader = initialize_loader(batch_size)
+    print('# of batches {} {} {}'.format(len(train_loader), len(valid_loader), len(test_loader)))
 
     model.cuda()
 
@@ -36,9 +36,7 @@ def train(model,
 
     for epoch in range(epochs):
         model.train()
-
         start_train = time.time()
-
         losses = []
         t_readimg = time.time()
         for i, (images, masks) in enumerate(train_loader):
@@ -54,12 +52,31 @@ def train(model,
             loss.backward()
             optimizer.step()
             losses.append(loss.data.item())
-
             t_readimg = time.time()
+        train_loss.append(sum(losses) / len(losses))
+
         time_elapsed = time.time() - start_train
         print('Epoch [{}/{}], Loss: {}, Avg. Batch Load (s): {}, Epoch (s): {}'.format(
             epoch + 1,
             epochs,
-            losses[-1],
+            train_loss[-1],
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
+
+        # start_valid = time.time()
+        # valid_losses = []
+        # for images, masks in valid_loader:
+        #     images = images.cuda()
+        #     masks = masks.cuda()
+        #     predictions = model(images.float())
+        #     loss = torch.nn.functional.binary_cross_entropy(predictions, masks.float())
+        #     valid_losses.append(loss.data.item())
+        # valid_loss.append(np.sum(valid_losses) / len(valid_losses))
+        # time_elapsed = time.time() - start_valid
+        #
+        # print('valid loss: {}, validation time (s): {}'.format(
+        #     valid_loss[-1],
+        #     sum(batchload_times) / len(batchload_times),
+        #     time_elapsed))
+
+

@@ -1,4 +1,6 @@
-from torch.utils.data import Dataset, DataLoader
+import torch
+from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data.sampler import SubsetRandomSampler
 import os
 import cv2
 import numpy as np
@@ -11,27 +13,36 @@ negative_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/negative'
 test_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(train_batch_size, validation_batch_size):
+def initialize_loader(batch_size):
     transform = torchvision.transforms.Resize((152, 200))
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
-    train_dataset = MyDataSet(train_folders, transform=transform, train=True)
+    full_dataset = MyDataSet(train_folders, transform=transform, train=True)
     test_dataset = MyDataSet(test_folders, transform=transform, train=False)
 
+    train_size = int(0.8 * len(full_dataset))
+    valid_size = len(full_dataset) - train_size
+    train_dataset, valid_dataset = random_split(full_dataset, [train_size, valid_size])
+
     train_loader = DataLoader(train_dataset,
-                              batch_size=train_batch_size,
+                              batch_size=batch_size,
                               num_workers=4,
                               shuffle=True,
                               drop_last=True)
+    valid_loader = DataLoader(valid_dataset,
+                             batch_size=batch_size,
+                             num_workers=4,
+                             shuffle=True,
+                             drop_last=True)
     test_loader = DataLoader(test_dataset,
-                             batch_size=train_batch_size,
+                             batch_size=batch_size,
                              num_workers=4,
                              shuffle=True,
                              drop_last=True)
 
-    return train_loader, test_loader
+    return train_loader, valid_loader, test_loader
 
 
 def display_image(img, y):
