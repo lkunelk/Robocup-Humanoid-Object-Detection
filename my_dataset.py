@@ -99,7 +99,7 @@ class MyDataSet(Dataset):
                             img_path,
                             [(int(x1), int(y1)), (int(x2), int(y2))]
                         ])
-            break  # DEBUG only read one folder for testing
+            # break  # DEBUG only read one folder for testing
         # add paths for negative examples (no ball in picture)
         # if train:
         #     for file in os.listdir(negative_path):
