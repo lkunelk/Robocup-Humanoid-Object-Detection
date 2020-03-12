@@ -8,9 +8,9 @@ import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
 
-train_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/train'
-negative_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/negative'
-test_path = '/home/robosoccer/Nam/bit-bots-ball-dataset-2018/test'
+train_path = '../bit-bots-ball-dataset-2018/train'
+negative_path = '../bit-bots-ball-dataset-2018/negative'
+test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size):
@@ -28,17 +28,17 @@ def initialize_loader(batch_size):
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
-                              num_workers=4,
+                              num_workers=64,
                               shuffle=True,
                               drop_last=True)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
-                              num_workers=4,
+                              num_workers=64,
                               shuffle=True,
                               drop_last=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
-                             num_workers=4,
+                             num_workers=64,
                              shuffle=True,
                              drop_last=True)
 
@@ -57,7 +57,6 @@ def display_image(img, mask, y):
     y = y.detach().numpy().reshape((152, 200))
 
     mask = mask.numpy().reshape((152, 200))
-    print(np.amax(mask))
 
     fig, ax = plt.subplots(2, 2)
     ax[0, 0].imshow(img)
@@ -83,7 +82,6 @@ class MyDataSet(Dataset):
 
         # add paths for train data with labels
         for path in file_paths:
-            # print(path)
             # find txt file with labels
             file_labels = None
             for file in os.listdir(path):
