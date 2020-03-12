@@ -53,7 +53,7 @@ def train(model,
         train_losses.append(sum(losses) / len(losses))
 
         time_elapsed = time.time() - start_epoch
-        print('Epoch [{}/{}], Loss: {:4.6}, Avg. Batch Load (s): {:.4}, Epoch (s): {:.2}'.format(
+        print('Epoch [{:2d}/{:2d}]: Train Loss: {: 4.6f}, Avg. Batch Load (s): {:.4f}, Epoch (s): {: 4.2f}'.format(
             epoch + 1,
             epochs,
             train_losses[-1],
@@ -75,12 +75,13 @@ def train(model,
         valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
-        print('    -- valid loss: {:4.6}, validation time (s): {:.2}'.format(
+        print('{:15}Valid Loss: {: 4.6f}, validation time (s): {: 4.2f}'.format(
+            '',
             valid_losses[-1],
             time_elapsed))
 
     time_elapsed = time.time() - start_train
-    print('Finished training in: {:.2}min'.format(
+    print('Finished training in: {: 4.2f}min'.format(
         time_elapsed/60
     ))
 
@@ -91,5 +92,5 @@ def train(model,
     plt.legend()
     plt.title("Losses")
     plt.xlabel("Epochs")
-    plt.show()
     plt.savefig(os.path.join(output_folder, "training_curve.png"))
+    plt.show()
