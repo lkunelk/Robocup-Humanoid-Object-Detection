@@ -139,8 +139,8 @@ class CNN(nn.Module):
         x = torch.cat((conv1_out, x), 1)
         x = self.conv11(x)
         x = self.conv12(x)
-        x = self.conv13(x)
+        logit = self.conv13(x)
 
-        # x = x.clamp(0.0, 1.0)
+        x = x.clamp(0.0, 1.0)
 
-        return x
+        return logit, x

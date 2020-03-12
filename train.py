@@ -40,24 +40,24 @@ def train(model,
         start_train = time.time()
         losses = []
         t_readimg = time.time()
-        for i, (images, masks) in enumerate(train_loader):
+        for images, masks in train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
             masks = masks.cuda()
 
             optimizer.zero_grad()
-
-            predictions = model(images.float())
-            loss = criterion(predictions.float(), masks.float())
+            predictions, _ = model(images.float())
+            loss = criterion(predictions, masks)
             loss.backward()
             optimizer.step()
+
             losses.append(loss.data.item())
             t_readimg = time.time()
         train_loss.append(sum(losses) / len(losses))
 
         time_elapsed = time.time() - start_train
-        print('Epoch [{}/{}], Loss: {}, Avg. Batch Load (s): {}, Epoch (s): {}'.format(
+        print('Epoch [{}/{}], Loss: {:4.6}, Avg. Batch Load (s): {:.4}, Epoch (s): {:.2}'.format(
             epoch + 1,
             epochs,
             train_loss[-1],
@@ -70,7 +70,7 @@ def train(model,
         for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
-            predictions = model(images.float())
+            predictions, _ = model(images.float())
             loss = criterion(predictions, masks.float())
             valid_losses.append(loss.data.item())
 
@@ -79,7 +79,6 @@ def train(model,
         valid_loss.append(np.sum(valid_losses) / len(valid_losses))
         time_elapsed = time.time() - start_valid
 
-        print('valid loss: {}, validation time (s): {}'.format(
+        print('    -- valid loss: {:4.6}, validation time (s): {:.2}'.format(
             valid_loss[-1],
-            sum(batchload_times) / len(batchload_times),
             time_elapsed))
