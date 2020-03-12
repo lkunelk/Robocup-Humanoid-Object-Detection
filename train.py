@@ -66,11 +66,11 @@ def train(model,
         for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
-            predictions, _ = model(images.float())
+            predictions, clipped_pred = model(images.float())
             loss = criterion(predictions, masks.float())
             losses.append(loss.data.item())
 
-        display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0])
+        display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0], clipped_pred.cpu()[0])
 
         valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid

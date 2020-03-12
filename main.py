@@ -24,6 +24,6 @@ if __name__ == '__main__':
         model,
         learn_rate=0.01,
         batch_size=64,
-        epochs=3)
+        epochs=20)
 
     torch.save(model.state_dict(), 'outputs/model')

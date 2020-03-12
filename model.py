@@ -141,6 +141,6 @@ class CNN(nn.Module):
         x = self.conv12(x)
         logit = self.conv13(x)
 
-        x = x.clamp(0.0, 1.0)
+        clamped = logit.clamp(min=0.0, max=1.0)
 
-        return logit, x
+        return logit, clamped

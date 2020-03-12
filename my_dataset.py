@@ -45,23 +45,31 @@ def initialize_loader(batch_size):
     return train_loader, valid_loader, test_loader
 
 
-def display_image(img, mask, y):
+def display_image(img, mask, y, pred):
     '''
     :param img: torch tensor channelxWxH
-    :param y: grayscale mask representing ball location
+    :param mask: ground truth label (0, 1)
+    :param y: grayscale output from model
+    :param pred: y with bounding box
     :return: None
     '''
-    img = img.numpy()
-    img = np.rollaxis(img, 0, 3)  # HxWxchannel
-
+    img = np.rollaxis(img.numpy(), 0, 3)  # HxWxchannel
     y = y.detach().numpy().reshape((152, 200))
-
     mask = mask.numpy().reshape((152, 200))
+    pred = pred.detach().numpy().reshape((152, 200))
 
     fig, ax = plt.subplots(2, 2)
+    ax[0, 0].set_title('Input')
     ax[0, 0].imshow(img)
+
+    ax[0, 1].set_title('Output')
     ax[0, 1].imshow(y, cmap='gray')
+
+    ax[1, 0].set_title('Mask')
     ax[1, 0].imshow(mask, cmap='gray')
+
+    ax[1, 1].set_title('Prediction')
+    ax[1, 1].imshow(pred, cmap='gray')
 
     plt.show()
 
