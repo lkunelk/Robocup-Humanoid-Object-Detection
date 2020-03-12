@@ -26,13 +26,13 @@ def train(model,
     print('# of batches train:{} valid:{} test:{}'.format(len(train_loader), len(valid_loader), len(test_loader)))
 
     print('Starting Training')
-
+    start_train = time.time()
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
     criterion = torch.nn.BCEWithLogitsLoss()
     model.cuda()
     model.train()
     for epoch in range(epochs):
-        start_train = time.time()
+        start_epoch = time.time()
         batchload_times = []
         losses = []
         t_readimg = time.time()
@@ -47,12 +47,12 @@ def train(model,
             loss = criterion(predictions, masks)
             loss.backward()
             optimizer.step()
-
             losses.append(loss.data.item())
+
             t_readimg = time.time()
         train_losses.append(sum(losses) / len(losses))
 
-        time_elapsed = time.time() - start_train
+        time_elapsed = time.time() - start_epoch
         print('Epoch [{}/{}], Loss: {:4.6}, Avg. Batch Load (s): {:.4}, Epoch (s): {:.2}'.format(
             epoch + 1,
             epochs,
@@ -78,6 +78,11 @@ def train(model,
         print('    -- valid loss: {:4.6}, validation time (s): {:.2}'.format(
             valid_losses[-1],
             time_elapsed))
+
+    time_elapsed = time.time() - start_train
+    print('Finished training in: {:.2}min'.format(
+        time_elapsed/60
+    ))
 
     # Plot training curve
     plt.figure()
