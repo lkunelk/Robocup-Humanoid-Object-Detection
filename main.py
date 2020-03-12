@@ -1,3 +1,4 @@
+import os
 import torch
 import numpy as np
 from model import CNN, init_weights
@@ -10,7 +11,12 @@ if __name__ == '__main__':
     model = CNN(
         kernel=3,
         num_features=16,
-        dropout=0.5)
+        dropout=0.1)
+
+    # Save directory
+    output_folder = 'outputs'
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
     model.apply(init_weights)
 
@@ -18,4 +24,6 @@ if __name__ == '__main__':
         model,
         learn_rate=0.01,
         batch_size=64,
-        epochs=20)
+        epochs=3)
+
+    torch.save(model.state_dict(), 'outputs/model')
