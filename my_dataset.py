@@ -8,6 +8,8 @@ import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
 
+TESTING = False
+
 train_path = '../bit-bots-ball-dataset-2018/train'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
@@ -45,7 +47,7 @@ def initialize_loader(batch_size):
     return train_loader, valid_loader, test_loader
 
 
-def display_image(img, mask, y, pred):
+def display_image(img=None, mask=None, y=None, pred=None):
     '''
     :param img: torch tensor channelxWxH
     :param mask: ground truth label (0, 1)
@@ -53,23 +55,26 @@ def display_image(img, mask, y, pred):
     :param pred: y with bounding box
     :return: None
     '''
-    img = np.rollaxis(img.numpy(), 0, 3)  # HxWxchannel
-    y = y.detach().numpy().reshape((152, 200))
-    mask = mask.numpy().reshape((152, 200))
-    pred = pred.detach().numpy().reshape((152, 200))
-
     fig, ax = plt.subplots(2, 2)
-    ax[0, 0].set_title('Input')
-    ax[0, 0].imshow(img)
+    if img is not None:
+        img = np.rollaxis(img.numpy(), 0, 3)  # HxWxchannel
+        ax[0, 0].set_title('Input')
+        ax[0, 0].imshow(img)
 
-    ax[0, 1].set_title('Output')
-    ax[0, 1].imshow(y, cmap='gray')
+    if y is not None:
+        y = y.detach().numpy().reshape((152, 200))
+        ax[0, 1].set_title('Output')
+        ax[0, 1].imshow(y, cmap='gray')
 
-    ax[1, 0].set_title('Mask')
-    ax[1, 0].imshow(mask, cmap='gray')
+    if mask is not None:
+        mask = mask.numpy().reshape((152, 200))
+        ax[1, 0].set_title('Mask')
+        ax[1, 0].imshow(mask, cmap='gray')
 
-    ax[1, 1].set_title('Prediction')
-    ax[1, 1].imshow(pred, cmap='gray')
+    if pred is not None:
+        pred = pred.detach().numpy().reshape((152, 200))
+        ax[1, 1].set_title('Prediction')
+        ax[1, 1].imshow(pred, cmap='gray')
 
     plt.show()
 
@@ -105,9 +110,10 @@ class MyDataSet(Dataset):
                         img_path = os.path.join(path, img)
                         self.valid_filenames.append([
                             img_path,
-                            [(int(x1), int(y1)), (int(x2), int(y2))]
+                            [int(x1), int(y1), int(x2), int(y2)]
                         ])
-            # break  # DEBUG only read one folder for testing
+            if TESTING:
+                break  # keep dataset small
         # add paths for negative examples (no ball in picture)
         # if train:
         #     for file in os.listdir(negative_path):
@@ -126,8 +132,8 @@ class MyDataSet(Dataset):
         img = np.array(img)
 
         mask = np.zeros((152, 200, 1))
-        pt1 = np.array(label[0]) / 4
-        pt2 = np.array(label[1]) / 4
+        pt1 = np.array(label[:2]) / 4
+        pt2 = np.array(label[2:]) / 4
         center = tuple(((pt1 + pt2) / 2).astype(np.int))
         size = tuple(((pt2 - pt1) / 2).astype(np.int))
         if not size == (0, 0):
@@ -135,4 +141,4 @@ class MyDataSet(Dataset):
 
         mask = np.rollaxis(mask, 2)
         img = np.rollaxis(img, 2)  # flip to channel*W*H
-        return img, mask
+        return img, mask, np.array(label)

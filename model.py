@@ -1,11 +1,23 @@
 import torch
 import torch.nn as nn
+import cv2
+import numpy as np
 
 
 def init_weights(m):
     if type(m) == nn.Conv2d:
         torch.nn.init.uniform_(m.weight, a=-0.001, b=0.001)
         m.bias.data.fill_(0.00)
+
+def find_bounding_boxes(activations):
+    '''
+    Finds blob with highest activation
+    :return:  bounding box of the blob
+    '''
+    activations = activations.numpy()
+    bounding_boxes = np.where(activations == np.amax(activations))
+
+    return bounding_boxes
 
 
 class CNN(nn.Module):

@@ -19,8 +19,11 @@ def train(model,
     np.random.seed(1)
 
     train_losses = []
+    train_ious = []
+    train_radius_losses = []
     valid_losses = []
     valid_ious = []
+    valid_radius_losses = []
 
     train_loader, valid_loader, test_loader = initialize_loader(batch_size)
     print('# of batches train:{} valid:{} test:{}'.format(len(train_loader), len(valid_loader), len(test_loader)))
@@ -36,7 +39,7 @@ def train(model,
         batchload_times = []
         losses = []
         t_readimg = time.time()
-        for images, masks in train_loader:
+        for images, masks, bounding_boxes in train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
@@ -63,7 +66,7 @@ def train(model,
         model.eval()
         start_valid = time.time()
         losses = []
-        for images, masks in valid_loader:
+        for images, masks, bounding_boxes in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
             predictions, clipped_pred = model(images.float())
@@ -82,7 +85,7 @@ def train(model,
 
     time_elapsed = time.time() - start_train
     print('Finished training in: {: 4.2f}min'.format(
-        time_elapsed/60
+        time_elapsed / 60
     ))
 
     # Plot training curve
