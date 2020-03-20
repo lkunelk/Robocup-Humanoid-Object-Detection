@@ -17,7 +17,7 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size):
-    transform = torchvision.transforms.Resize((152, 200))
+    transform = None  # torchvision.transforms.Resize((152, 200))
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
@@ -58,22 +58,22 @@ def display_image(img=None, mask=None, y=None, pred=None):
     '''
     fig, ax = plt.subplots(2, 2)
     if img is not None:
-        img = np.rollaxis(img.numpy(), 0, 3)  # HxWxchannel
+        img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
         ax[0, 0].set_title('Input')
         ax[0, 0].imshow(img)
 
     if y is not None:
-        y = y.detach().numpy()[2].reshape((152, 200))
+        y = np.moveaxis(y.detach().numpy(), 0, -1)
         ax[0, 1].set_title('Output')
-        ax[0, 1].imshow(y, cmap='gray')
+        ax[0, 1].imshow(y)
 
     if mask is not None:
-        mask = mask.numpy().reshape((152, 200))
+        mask = mask.numpy()
         ax[1, 0].set_title('Mask')
-        ax[1, 0].imshow(mask, cmap='gray')
+        ax[1, 0].imshow(mask)
 
     if pred is not None:
-        pred = pred.detach().numpy()[2].reshape((152, 200))
+        pred = pred.detach().numpy()[2]
         ax[1, 1].set_title('Prediction')
         ax[1, 1].imshow(pred, cmap='gray')
 
@@ -148,12 +148,12 @@ class MyDataSet(Dataset):
         if self.transform:
             img = self.transform(img)
         img = np.array(img)
-
-        mask = np.zeros((152, 200, 1))
+        height, width, _ = img.shape
+        mask = np.zeros((height, width, 1))
         for bb in bounding_boxes:
             label = bb[0]
-            pt1 = np.array(bb[1:3]) / 4
-            pt2 = np.array(bb[3:5]) / 4
+            pt1 = np.array(bb[1:3])
+            pt2 = np.array(bb[3:5])
 
             center = tuple(((pt1 + pt2) / 2).astype(np.int))
             size = tuple(((pt2 - pt1) / 2).astype(np.int))
