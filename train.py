@@ -39,7 +39,7 @@ def train(model,
         batchload_times = []
         losses = []
         t_readimg = time.time()
-        for images, masks, bounding_boxes in train_loader:
+        for images, masks in train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
@@ -66,7 +66,7 @@ def train(model,
         model.eval()
         start_valid = time.time()
         losses = []
-        for images, masks, bounding_boxes in valid_loader:
+        for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
             predictions, clipped_pred = model(images.float())

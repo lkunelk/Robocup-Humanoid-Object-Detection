@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
+import enum
 import os
 import cv2
 import numpy as np
@@ -10,7 +11,7 @@ from PIL import Image
 
 TESTING = False
 
-train_path = '../bit-bots-ball-dataset-2018/train'
+train_path = '../robot-dataset'  # '../bit-bots-ball-dataset-2018/train'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
@@ -62,7 +63,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[0, 0].imshow(img)
 
     if y is not None:
-        y = y.detach().numpy()[1].reshape((152, 200))
+        y = y.detach().numpy()[2].reshape((152, 200))
         ax[0, 1].set_title('Output')
         ax[0, 1].imshow(y, cmap='gray')
 
@@ -72,7 +73,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[1, 0].imshow(mask, cmap='gray')
 
     if pred is not None:
-        pred = pred.detach().numpy()[1].reshape((152, 200))
+        pred = pred.detach().numpy()[2].reshape((152, 200))
         ax[1, 1].set_title('Prediction')
         ax[1, 1].imshow(pred, cmap='gray')
 
@@ -87,14 +88,21 @@ def read_image(path):
     return img
 
 
+class Label(enum.Enum):
+    OTHER = 0
+    BALL = 1
+    ROBOT = 2
+
+
 class MyDataSet(Dataset):
-    def __init__(self, file_paths, transform=None, train=False):
-        self.file_paths = file_paths
-        self.valid_filenames = []
+    def __init__(self, folder_paths, transform=None, train=False):
+        self.folder_paths = folder_paths  # folders of the images
+        self.img_paths = []  # all individual images
+        self.bounding_boxes = {}  # image paths and their labels
         self.transform = transform
 
         # add paths for train data with labels
-        for path in file_paths:
+        for path in folder_paths:
             # find txt file with labels
             file_labels = None
             for file in os.listdir(path):
@@ -106,12 +114,21 @@ class MyDataSet(Dataset):
                 for i, line in enumerate(labels):
                     if i > 5:  # ignore first few metadata lines
                         label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
-                        assert label == 'label::ball'
+
                         img_path = os.path.join(path, img)
-                        self.valid_filenames.append([
-                            img_path,
-                            [int(x1), int(y1), int(x2), int(y2)]
-                        ])
+
+                        if label == 'label::ball':
+                            label = Label.BALL
+                        if label == 'label::robot':
+                            label = Label.ROBOT
+
+                        if img_path not in self.img_paths:
+                            self.bounding_boxes[img_path] = []
+                            self.img_paths.append(img_path)
+
+                        self.bounding_boxes[img_path].append(
+                            [label, int(x1), int(y1), int(x2), int(y2)])
+
             if TESTING:
                 break  # keep dataset small
         # add paths for negative examples (no ball in picture)
@@ -121,10 +138,11 @@ class MyDataSet(Dataset):
         #         self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
 
     def __len__(self):
-        return len(self.valid_filenames)
+        return len(self.bounding_boxes)
 
     def __getitem__(self, index):
-        img_path, label = self.valid_filenames[index]
+        img_path = self.img_paths[index]
+        bounding_boxes = self.bounding_boxes[img_path]
         img = read_image(img_path)
 
         if self.transform:
@@ -132,13 +150,18 @@ class MyDataSet(Dataset):
         img = np.array(img)
 
         mask = np.zeros((152, 200, 1))
-        pt1 = np.array(label[:2]) / 4
-        pt2 = np.array(label[2:]) / 4
-        center = tuple(((pt1 + pt2) / 2).astype(np.int))
-        size = tuple(((pt2 - pt1) / 2).astype(np.int))
-        if not size == (0, 0):
-            mask = cv2.ellipse(mask, center, size, 0, 0, 360, (1), -1)
+        for bb in bounding_boxes:
+            label = bb[0]
+            pt1 = np.array(bb[1:3]) / 4
+            pt2 = np.array(bb[3:5]) / 4
+
+            center = tuple(((pt1 + pt2) / 2).astype(np.int))
+            size = tuple(((pt2 - pt1) / 2).astype(np.int))
+
+            if not size == (0, 0):
+                # print(center, size, label)
+                mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
 
         mask = np.squeeze(mask)  # get rid of channel dimension
         img = np.rollaxis(img, 2)  # flip to channel*W*H
-        return img, mask, np.array(label)
+        return img, mask
