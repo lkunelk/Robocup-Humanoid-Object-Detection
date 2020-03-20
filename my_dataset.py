@@ -62,7 +62,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[0, 0].imshow(img)
 
     if y is not None:
-        y = y.detach().numpy().reshape((152, 200))
+        y = y.detach().numpy()[1].reshape((152, 200))
         ax[0, 1].set_title('Output')
         ax[0, 1].imshow(y, cmap='gray')
 
@@ -72,7 +72,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[1, 0].imshow(mask, cmap='gray')
 
     if pred is not None:
-        pred = pred.detach().numpy().reshape((152, 200))
+        pred = pred.detach().numpy()[1].reshape((152, 200))
         ax[1, 1].set_title('Prediction')
         ax[1, 1].imshow(pred, cmap='gray')
 
@@ -139,6 +139,6 @@ class MyDataSet(Dataset):
         if not size == (0, 0):
             mask = cv2.ellipse(mask, center, size, 0, 0, 360, (1), -1)
 
-        mask = np.rollaxis(mask, 2)
+        mask = np.squeeze(mask)  # get rid of channel dimension
         img = np.rollaxis(img, 2)  # flip to channel*W*H
         return img, mask, np.array(label)

@@ -31,7 +31,7 @@ def train(model,
     print('Starting Training')
     start_train = time.time()
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    criterion = torch.nn.BCEWithLogitsLoss()
+    criterion = torch.nn.CrossEntropyLoss()
     model.cuda()
     model.train()
     for epoch in range(epochs):
@@ -47,7 +47,7 @@ def train(model,
 
             optimizer.zero_grad()
             predictions, _ = model(images.float())
-            loss = criterion(predictions, masks)
+            loss = criterion(predictions, masks.long())
             loss.backward()
             optimizer.step()
             losses.append(loss.data.item())
@@ -70,7 +70,7 @@ def train(model,
             images = images.cuda()
             masks = masks.cuda()
             predictions, clipped_pred = model(images.float())
-            loss = criterion(predictions, masks.float())
+            loss = criterion(predictions, masks.long())
             losses.append(loss.data.item())
 
         display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0], clipped_pred.cpu()[0])

@@ -124,7 +124,7 @@ class CNN(nn.Module):
         )
 
         self.conv13 = nn.Sequential(
-            nn.Conv2d(1 * num_features, 1, kernel, padding=pad)
+            nn.Conv2d(1 * num_features, 2, kernel, padding=pad)
         )
 
     def forward(self, x):
