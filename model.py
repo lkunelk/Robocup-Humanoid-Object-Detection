@@ -153,6 +153,7 @@ class CNN(nn.Module):
         x = self.conv12(x)
         logit = self.conv13(x)
 
-        clamped = logit.clamp(min=0.0, max=1.0)
+        clamped = torch.nn.Softmax2d()(logit)
+        # clamped = logit.clamp(min=0.0, max=1.0)
 
         return logit, clamped

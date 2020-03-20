@@ -56,7 +56,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
     :param pred: y with bounding box
     :return: None
     '''
-    fig, ax = plt.subplots(2, 2)
+    fig, ax = plt.subplots(3, 2)
     if img is not None:
         img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
         ax[0, 0].set_title('Input')
@@ -73,9 +73,19 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[1, 0].imshow(mask)
 
     if pred is not None:
-        pred = pred.detach().numpy()[2]
-        ax[1, 1].set_title('Prediction')
-        ax[1, 1].imshow(pred, cmap='gray')
+        p = pred.detach().numpy()[0]
+        ax[1, 1].set_title('Prediction: other')
+        ax[1, 1].imshow(p, cmap='gray')
+
+    if pred is not None:
+        p = pred.detach().numpy()[1]
+        ax[2, 0].set_title('Prediction: ball')
+        ax[2, 0].imshow(p, cmap='gray')
+
+    if pred is not None:
+        p = pred.detach().numpy()[2]
+        ax[2, 1].set_title('Prediction: robot')
+        ax[2, 1].imshow(p, cmap='gray')
 
     plt.show()
 
@@ -160,7 +170,10 @@ class MyDataSet(Dataset):
 
             if not size == (0, 0):
                 # print(center, size, label)
-                mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
+                if label == Label.BALL:
+                    mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
+                if label == Label.ROBOT:
+                    mask = cv2.rectangle(mask, tuple(pt1), tuple(pt2), (label.value), -1)
 
         mask = np.squeeze(mask)  # get rid of channel dimension
         img = np.rollaxis(img, 2)  # flip to channel*W*H
