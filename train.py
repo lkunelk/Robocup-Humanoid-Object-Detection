@@ -31,7 +31,9 @@ def train(model,
     print('Starting Training')
     start_train = time.time()
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    criterion = torch.nn.CrossEntropyLoss()
+    weight = torch.Tensor([0.2, 0.6, 0.2])
+    criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
+
     model.cuda()
     model.train()
     for epoch in range(epochs):
