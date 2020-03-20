@@ -17,7 +17,10 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size):
-    transform = None  # torchvision.transforms.Resize((152, 200))
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(152),
+        torchvision.transforms.CenterCrop((152, 200)),
+    ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
@@ -91,11 +94,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
 
 
 def read_image(path):
-    img = Image.open(path)
-    # img = resize(img, (150, 200, 3))
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # img = np.rollaxis(img, 2)  # flip to channel*W*H
-    return img
+    return Image.open(path)
 
 
 class Label(enum.Enum):
@@ -151,15 +150,18 @@ class MyDataSet(Dataset):
         return len(self.bounding_boxes)
 
     def __getitem__(self, index):
+        '''
+        :param index: index of data point
+        :return: img ndarray (3 x w x h) RGB image
+                 mask ndarray (w x h) segmentation classification of each pixel
+        '''
         img_path = self.img_paths[index]
         bounding_boxes = self.bounding_boxes[img_path]
         img = read_image(img_path)
 
-        if self.transform:
-            img = self.transform(img)
-        img = np.array(img)
-        height, width, _ = img.shape
-        mask = np.zeros((height, width, 1))
+        height, width, _ = np.array(img).shape
+        # the final mask will have no channels but we need 3 to convert to PIL image to apply transformation
+        mask = np.zeros((height, width, 3))
         for bb in bounding_boxes:
             label = bb[0]
             pt1 = np.array(bb[1:3])
@@ -169,12 +171,19 @@ class MyDataSet(Dataset):
             size = tuple(((pt2 - pt1) / 2).astype(np.int))
 
             if not size == (0, 0):
-                # print(center, size, label)
                 if label == Label.BALL:
                     mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
                 if label == Label.ROBOT:
                     mask = cv2.rectangle(mask, tuple(pt1), tuple(pt2), (label.value), -1)
 
-        mask = np.squeeze(mask)  # get rid of channel dimension
-        img = np.rollaxis(img, 2)  # flip to channel*W*H
+        mask = Image.fromarray(mask.astype('uint8'))
+
+        if self.transform:
+            img = self.transform(img)
+            mask = self.transform(mask)
+
+        img = np.array(img)
+        mask = np.array(mask)
+        img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
+        mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
         return img, mask
