@@ -18,8 +18,8 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 def initialize_loader(batch_size):
     transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(152),
-        torchvision.transforms.CenterCrop((152, 200)),
+        torchvision.transforms.Resize(150, interpolation=Image.NEAREST),
+        torchvision.transforms.CenterCrop((150, 200)),
     ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
@@ -35,18 +35,15 @@ def initialize_loader(batch_size):
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True,
-                              drop_last=True)
+                              shuffle=True)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True,
-                              drop_last=True)
+                              shuffle=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=64,
-                             shuffle=True,
-                             drop_last=True)
+                             shuffle=True)
 
     return train_loader, valid_loader, test_loader
 
@@ -59,7 +56,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
     :param pred: y with bounding box
     :return: None
     '''
-    fig, ax = plt.subplots(3, 2)
+    fig, ax = plt.subplots(3, 2, figsize=(8, 10))
     if img is not None:
         img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
         ax[0, 0].set_title('Input')
