@@ -11,7 +11,7 @@ from PIL import Image
 
 TESTING = False
 
-train_path = '../robot-dataset'  # '../bit-bots-ball-dataset-2018/train'
+train_path = '../bit-bots-ball-dataset-2018/train'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
@@ -44,6 +44,12 @@ def initialize_loader(batch_size):
                              batch_size=batch_size,
                              num_workers=64,
                              shuffle=True)
+
+    print('train dataset: # images {}, # robots {}, # balls {}'.format(
+        len(full_dataset),
+        full_dataset.num_robot_labels,
+        full_dataset.num_ball_labels
+    ))
 
     return train_loader, valid_loader, test_loader
 
@@ -95,6 +101,9 @@ def read_image(path):
 
 
 class Label(enum.Enum):
+    '''
+    the values correspond to which output neuron should be activated
+    '''
     OTHER = 0
     BALL = 1
     ROBOT = 2
@@ -106,6 +115,10 @@ class MyDataSet(Dataset):
         self.img_paths = []  # all individual images
         self.bounding_boxes = {}  # image paths and their labels
         self.transform = transform
+
+        # statistics
+        self.num_ball_labels = 0
+        self.num_robot_labels = 0
 
         # add paths for train data with labels
         for path in folder_paths:
@@ -125,8 +138,10 @@ class MyDataSet(Dataset):
 
                         if label == 'label::ball':
                             label = Label.BALL
+                            self.num_ball_labels += 1
                         if label == 'label::robot':
                             label = Label.ROBOT
+                            self.num_robot_labels += 1
 
                         if img_path not in self.img_paths:
                             self.bounding_boxes[img_path] = []
