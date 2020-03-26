@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
+import enum
 import os
 import cv2
 import numpy as np
@@ -16,7 +17,10 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size):
-    transform = torchvision.transforms.Resize((152, 200))
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.Resize(150, interpolation=Image.NEAREST),
+        torchvision.transforms.CenterCrop((150, 200)),
+    ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
@@ -31,18 +35,21 @@ def initialize_loader(batch_size):
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True,
-                              drop_last=True)
+                              shuffle=True)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True,
-                              drop_last=True)
+                              shuffle=True)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=64,
-                             shuffle=True,
-                             drop_last=True)
+                             shuffle=True)
+
+    print('train dataset: # images {}, # robots {}, # balls {}'.format(
+        len(full_dataset),
+        full_dataset.num_robot_labels,
+        full_dataset.num_ball_labels
+    ))
 
     return train_loader, valid_loader, test_loader
 
@@ -55,46 +62,66 @@ def display_image(img=None, mask=None, y=None, pred=None):
     :param pred: y with bounding box
     :return: None
     '''
-    fig, ax = plt.subplots(2, 2)
+    fig, ax = plt.subplots(3, 2, figsize=(8, 10))
     if img is not None:
-        img = np.rollaxis(img.numpy(), 0, 3)  # HxWxchannel
+        img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
         ax[0, 0].set_title('Input')
         ax[0, 0].imshow(img)
 
     if y is not None:
-        y = y.detach().numpy().reshape((152, 200))
+        y = np.moveaxis(y.detach().numpy(), 0, -1)
         ax[0, 1].set_title('Output')
-        ax[0, 1].imshow(y, cmap='gray')
+        ax[0, 1].imshow(y)
 
     if mask is not None:
-        mask = mask.numpy().reshape((152, 200))
+        mask = mask.numpy()
         ax[1, 0].set_title('Mask')
-        ax[1, 0].imshow(mask, cmap='gray')
+        ax[1, 0].imshow(mask)
 
     if pred is not None:
-        pred = pred.detach().numpy().reshape((152, 200))
-        ax[1, 1].set_title('Prediction')
-        ax[1, 1].imshow(pred, cmap='gray')
+        p = pred.detach().numpy()[0]
+        ax[1, 1].set_title('Prediction: other')
+        ax[1, 1].imshow(p, cmap='gray')
+
+    if pred is not None:
+        p = pred.detach().numpy()[1]
+        ax[2, 0].set_title('Prediction: ball')
+        ax[2, 0].imshow(p, cmap='gray')
+
+    if pred is not None:
+        p = pred.detach().numpy()[2]
+        ax[2, 1].set_title('Prediction: robot')
+        ax[2, 1].imshow(p, cmap='gray')
 
     plt.show()
 
 
 def read_image(path):
-    img = Image.open(path)
-    # img = resize(img, (150, 200, 3))
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    # img = np.rollaxis(img, 2)  # flip to channel*W*H
-    return img
+    return Image.open(path)
+
+
+class Label(enum.Enum):
+    '''
+    the values correspond to which output neuron should be activated
+    '''
+    OTHER = 0
+    BALL = 1
+    ROBOT = 2
 
 
 class MyDataSet(Dataset):
-    def __init__(self, file_paths, transform=None, train=False):
-        self.file_paths = file_paths
-        self.valid_filenames = []
+    def __init__(self, folder_paths, transform=None, train=False):
+        self.folder_paths = folder_paths  # folders of the images
+        self.img_paths = []  # all individual images
+        self.bounding_boxes = {}  # image paths and their labels
         self.transform = transform
 
+        # statistics
+        self.num_ball_labels = 0
+        self.num_robot_labels = 0
+
         # add paths for train data with labels
-        for path in file_paths:
+        for path in folder_paths:
             # find txt file with labels
             file_labels = None
             for file in os.listdir(path):
@@ -106,12 +133,23 @@ class MyDataSet(Dataset):
                 for i, line in enumerate(labels):
                     if i > 5:  # ignore first few metadata lines
                         label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
-                        assert label == 'label::ball'
+
                         img_path = os.path.join(path, img)
-                        self.valid_filenames.append([
-                            img_path,
-                            [int(x1), int(y1), int(x2), int(y2)]
-                        ])
+
+                        if label == 'label::ball':
+                            label = Label.BALL
+                            self.num_ball_labels += 1
+                        if label == 'label::robot':
+                            label = Label.ROBOT
+                            self.num_robot_labels += 1
+
+                        if img_path not in self.img_paths:
+                            self.bounding_boxes[img_path] = []
+                            self.img_paths.append(img_path)
+
+                        self.bounding_boxes[img_path].append(
+                            [label, int(x1), int(y1), int(x2), int(y2)])
+
             if TESTING:
                 break  # keep dataset small
         # add paths for negative examples (no ball in picture)
@@ -121,24 +159,43 @@ class MyDataSet(Dataset):
         #         self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
 
     def __len__(self):
-        return len(self.valid_filenames)
+        return len(self.bounding_boxes)
 
     def __getitem__(self, index):
-        img_path, label = self.valid_filenames[index]
+        '''
+        :param index: index of data point
+        :return: img ndarray (3 x w x h) RGB image
+                 mask ndarray (w x h) segmentation classification of each pixel
+        '''
+        img_path = self.img_paths[index]
+        bounding_boxes = self.bounding_boxes[img_path]
         img = read_image(img_path)
+
+        height, width, _ = np.array(img).shape
+        # the final mask will have no channels but we need 3 to convert to PIL image to apply transformation
+        mask = np.zeros((height, width, 3))
+        for bb in bounding_boxes:
+            label = bb[0]
+            pt1 = np.array(bb[1:3])
+            pt2 = np.array(bb[3:5])
+
+            center = tuple(((pt1 + pt2) / 2).astype(np.int))
+            size = tuple(((pt2 - pt1) / 2).astype(np.int))
+
+            if not size == (0, 0):
+                if label == Label.BALL:
+                    mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
+                if label == Label.ROBOT:
+                    mask = cv2.rectangle(mask, tuple(pt1), tuple(pt2), (label.value), -1)
+
+        mask = Image.fromarray(mask.astype('uint8'))
 
         if self.transform:
             img = self.transform(img)
+            mask = self.transform(mask)
+
         img = np.array(img)
-
-        mask = np.zeros((152, 200, 1))
-        pt1 = np.array(label[:2]) / 4
-        pt2 = np.array(label[2:]) / 4
-        center = tuple(((pt1 + pt2) / 2).astype(np.int))
-        size = tuple(((pt2 - pt1) / 2).astype(np.int))
-        if not size == (0, 0):
-            mask = cv2.ellipse(mask, center, size, 0, 0, 360, (1), -1)
-
-        mask = np.rollaxis(mask, 2)
-        img = np.rollaxis(img, 2)  # flip to channel*W*H
-        return img, mask, np.array(label)
+        mask = np.array(mask)
+        img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
+        mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
+        return img, mask

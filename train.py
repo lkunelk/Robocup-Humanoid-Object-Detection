@@ -31,7 +31,9 @@ def train(model,
     print('Starting Training')
     start_train = time.time()
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    criterion = torch.nn.BCEWithLogitsLoss()
+    weight = torch.Tensor([0.2, 0.6, 0.2])
+    criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
+
     model.cuda()
     model.train()
     for epoch in range(epochs):
@@ -39,7 +41,7 @@ def train(model,
         batchload_times = []
         losses = []
         t_readimg = time.time()
-        for images, masks, bounding_boxes in train_loader:
+        for images, masks in train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
@@ -47,7 +49,7 @@ def train(model,
 
             optimizer.zero_grad()
             predictions, _ = model(images.float())
-            loss = criterion(predictions, masks)
+            loss = criterion(predictions, masks.long())
             loss.backward()
             optimizer.step()
             losses.append(loss.data.item())
@@ -66,11 +68,11 @@ def train(model,
         model.eval()
         start_valid = time.time()
         losses = []
-        for images, masks, bounding_boxes in valid_loader:
+        for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
             predictions, clipped_pred = model(images.float())
-            loss = criterion(predictions, masks.float())
+            loss = criterion(predictions, masks.long())
             losses.append(loss.data.item())
 
         display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0], clipped_pred.cpu()[0])

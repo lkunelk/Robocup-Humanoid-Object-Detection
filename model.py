@@ -9,6 +9,7 @@ def init_weights(m):
         torch.nn.init.uniform_(m.weight, a=-0.001, b=0.001)
         m.bias.data.fill_(0.00)
 
+
 def find_bounding_boxes(activations):
     '''
     Finds blob with highest activation
@@ -21,10 +22,15 @@ def find_bounding_boxes(activations):
 
 
 class CNN(nn.Module):
+    '''
+    Model reproduced from: Hamburg Bot Bot Team
+    assume input image has dimensions 3x150x200
+    '''
+
     def __init__(self, kernel=3, num_features=16, dropout=0.5):
         super(CNN, self).__init__()
 
-        pad = kernel // 2
+        pad = kernel // 2  # ensure output will have the same dimensions as input
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(3, num_features, kernel, padding=pad),
@@ -82,7 +88,7 @@ class CNN(nn.Module):
             nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(8 * num_features),
             nn.LeakyReLU(),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            nn.UpsamplingBilinear2d(size=(75, 100))  # assume input was 250x200pxl
         )
 
         # concat 48 + 128
@@ -105,7 +111,7 @@ class CNN(nn.Module):
             nn.Dropout2d(p=dropout),
             nn.BatchNorm2d(2 * num_features),
             nn.LeakyReLU(),
-            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+            nn.UpsamplingBilinear2d(size=(150, 200))  # assume input was 150x200pxl
         )
 
         # concat 16 + 32
@@ -124,7 +130,7 @@ class CNN(nn.Module):
         )
 
         self.conv13 = nn.Sequential(
-            nn.Conv2d(1 * num_features, 1, kernel, padding=pad)
+            nn.Conv2d(1 * num_features, 3, kernel, padding=pad)
         )
 
     def forward(self, x):
@@ -153,6 +159,7 @@ class CNN(nn.Module):
         x = self.conv12(x)
         logit = self.conv13(x)
 
-        clamped = logit.clamp(min=0.0, max=1.0)
+        clamped = torch.nn.Softmax2d()(logit)
+        # clamped = logit.clamp(min=0.0, max=1.0)
 
         return logit, clamped
