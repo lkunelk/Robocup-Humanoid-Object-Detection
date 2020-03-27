@@ -17,14 +17,13 @@ def find_bounding_boxes(activations):
     activations numpy array 1xWxH image values 0 to 1
     :return:  bounding boxes of blobs [x0, y0, x1, y1]
     '''
+    activations = util.torch_to_cv(activations)
     activations = np.round(activations)
     activations = activations.astype(np.uint8)
-    activations = util.torch_to_cv(activations)
     contours, hierarchy = cv2.findContours(activations, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     bounding_boxes = []
     for c in contours:
-        print('bounding box!')
         x, y, w, h = cv2.boundingRect(c)
         bounding_boxes.append([x, y, x + w, y + h])
 

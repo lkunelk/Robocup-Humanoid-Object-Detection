@@ -2,7 +2,8 @@ import os
 import time
 import numpy as np
 import torch
-from my_dataset import initialize_loader, display_image
+from model import find_bounding_boxes
+from my_dataset import initialize_loader, display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
 
@@ -75,7 +76,17 @@ def train(model,
             loss = criterion(predictions, masks.long())
             losses.append(loss.data.item())
 
-        display_image(images.cpu()[0], masks.cpu()[0], predictions.cpu()[0], clipped_pred.cpu()[0])
+        bbxs = find_bounding_boxes(predictions[0][1:2])
+        img = draw_bounding_boxes(images[0], bbxs, (255, 0, 0))
+
+        display_image([
+            (img, None, 'Input'),
+            (masks[0], None, 'Truth'),
+            (predictions[0], None, 'Prediction'),
+            (clipped_pred[0][0], 'gray', 'Background'),
+            (clipped_pred[0][1], 'gray', 'Ball'),
+            (clipped_pred[0][2], 'gray', 'Robot')
+        ])
 
         valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid

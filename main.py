@@ -20,6 +20,7 @@ def train_model():
         os.makedirs(output_folder)
 
     model.apply(init_weights)
+    model.load_state_dict(torch.load('outputs/model'))
 
     train.train(
         model,
@@ -54,4 +55,4 @@ def test_bounding_box():
 
 
 if __name__ == '__main__':
-    test_bounding_box()
+    train_model()

@@ -78,13 +78,12 @@ def display_image(to_plot):
     '''
     fig, ax = plt.subplots(3, 2, figsize=(8, 10))
     for i, plot_info in enumerate(to_plot):
-
         img = util.torch_to_cv(plot_info[0])
         cmap = plot_info[1]
         title = plot_info[2]
 
-        ax[i//2, i%2].imshow(img, cmap=cmap)
-        ax[i//2, i%2].set_title(title)
+        ax[i // 2, i % 2].imshow(img, cmap=cmap)
+        ax[i // 2, i % 2].set_title(title)
     plt.show()
 
 
