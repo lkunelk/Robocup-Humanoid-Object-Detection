@@ -48,7 +48,9 @@ def test_bounding_box():
     bbxs = find_bounding_boxes(img)
     inp = inp.detach().numpy()
     inp = draw_bounding_boxes(inp, bbxs, 255)
-    display_image(mask=inp)
+    display_image([
+        (inp, None, 'Input'),
+        (img, 'gray', 'Output')])
 
 
 if __name__ == '__main__':

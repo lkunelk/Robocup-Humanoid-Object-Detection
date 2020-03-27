@@ -72,45 +72,19 @@ def draw_bounding_boxes(img, bbxs, colour):
     return util.cv_to_torch(img)
 
 
-def display_image(img=None, mask=None, y=None, pred=None):
+def display_image(to_plot):
     '''
-    :param img: torch tensor channelxWxH
-    :param mask: ground truth label (0, 1)
-    :param y: grayscale output from model
-    :param pred: y with bounding box
-    :return: None
+    :param to_plot: list of tuples of the form (img [(cxhxw) numpy array], cmap [str], title [str])
     '''
     fig, ax = plt.subplots(3, 2, figsize=(8, 10))
-    if img is not None:
-        # img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
-        ax[0, 0].set_title('Input')
-        ax[0, 0].imshow(img, cmap='gray')
+    for i, plot_info in enumerate(to_plot):
 
-    if y is not None:
-        y = np.moveaxis(y.detach().numpy(), 0, -1)
-        ax[0, 1].set_title('Output')
-        ax[0, 1].imshow(y)
+        img = util.torch_to_cv(plot_info[0])
+        cmap = plot_info[1]
+        title = plot_info[2]
 
-    if mask is not None:
-        mask = np.moveaxis(mask, 0, -1)
-        ax[1, 0].set_title('Mask')
-        ax[1, 0].imshow(mask)
-
-    if pred is not None:
-        p = pred.detach().numpy()[0]
-        ax[1, 1].set_title('Prediction: other')
-        ax[1, 1].imshow(p, cmap='gray')
-
-    if pred is not None:
-        p = pred.detach().numpy()[1]
-        ax[2, 0].set_title('Prediction: ball')
-        ax[2, 0].imshow(p, cmap='gray')
-
-    if pred is not None:
-        p = pred.detach().numpy()[2]
-        ax[2, 1].set_title('Prediction: robot')
-        ax[2, 1].imshow(p, cmap='gray')
-
+        ax[i//2, i%2].imshow(img, cmap=cmap)
+        ax[i//2, i%2].set_title(title)
     plt.show()
 
 

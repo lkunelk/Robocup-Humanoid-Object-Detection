@@ -3,6 +3,8 @@ import numpy as np
 
 def torch_to_cv(img):
     assert img.shape[0] <= 3  # first dim is color channel
+    if img.shape[0] == 1:  # grayscale
+        return np.squeeze(img)
     return np.moveaxis(img, 0, -1)
 
 
