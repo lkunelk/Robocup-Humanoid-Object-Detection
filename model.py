@@ -166,9 +166,7 @@ class CNN(nn.Module):
         x = torch.cat((conv1_out, x), 1)
         x = self.conv11(x)
         x = self.conv12(x)
-        logit = self.conv13(x)
+        logit = self.conv13(x)  # used for calculating loss
+        output = torch.nn.Softmax2d()(logit)
 
-        clamped = torch.nn.Softmax2d()(logit)
-        # clamped = logit.clamp(min=0.0, max=1.0)
-
-        return logit, clamped
+        return output, logit

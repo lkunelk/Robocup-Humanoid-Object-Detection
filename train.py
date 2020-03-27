@@ -49,8 +49,8 @@ def train(model,
             masks = masks.cuda()
 
             optimizer.zero_grad()
-            predictions, _ = model(images.float())
-            loss = criterion(predictions, masks.long())
+            _, logits = model(images.float())
+            loss = criterion(logits, masks.long())
             loss.backward()
             optimizer.step()
             losses.append(loss.data.item())
@@ -72,20 +72,20 @@ def train(model,
         for images, masks in valid_loader:
             images = images.cuda()
             masks = masks.cuda()
-            predictions, clipped_pred = model(images.float())
-            loss = criterion(predictions, masks.long())
+            outputs, logits = model(images.float())
+            loss = criterion(logits, masks.long())
             losses.append(loss.data.item())
 
-        bbxs = find_bounding_boxes(predictions[0][1:2])
+        bbxs = find_bounding_boxes(outputs[0][1:2])
         img = draw_bounding_boxes(images[0], bbxs, (255, 0, 0))
 
         display_image([
             (img, None, 'Input'),
             (masks[0], None, 'Truth'),
-            (predictions[0], None, 'Prediction'),
-            (clipped_pred[0][0], 'gray', 'Background'),
-            (clipped_pred[0][1], 'gray', 'Ball'),
-            (clipped_pred[0][2], 'gray', 'Robot')
+            (outputs[0], None, 'Prediction'),
+            (outputs[0][0], 'gray', 'Background'),
+            (outputs[0][1], 'gray', 'Ball'),
+            (outputs[0][2], 'gray', 'Robot')
         ])
 
         valid_losses.append(np.sum(losses) / len(losses))
