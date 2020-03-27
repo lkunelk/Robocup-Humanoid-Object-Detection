@@ -8,15 +8,16 @@ import numpy as np
 import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
+import util
 
-TESTING = False
+TESTING = True
 
 train_path = '../bit-bots-ball-dataset-2018/train'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(batch_size):
+def initialize_loader(batch_size, shuffle=True):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(150, interpolation=Image.NEAREST),
         torchvision.transforms.CenterCrop((150, 200)),
@@ -35,15 +36,15 @@ def initialize_loader(batch_size):
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True)
+                              shuffle=shuffle)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True)
+                              shuffle=shuffle)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=64,
-                             shuffle=True)
+                             shuffle=shuffle)
 
     print('train dataset: # images {}, # robots {}, # balls {}'.format(
         len(full_dataset),
@@ -52,6 +53,23 @@ def initialize_loader(batch_size):
     ))
 
     return train_loader, valid_loader, test_loader
+
+
+def draw_bounding_boxes(img, bbxs, colour):
+    '''
+    :param img: rgb torch image
+    :param bbxs:
+    :param colour:
+    :return:
+    '''
+    img = util.torch_to_cv(img)
+    img = img.copy()  # cv2 seems to like copies to draw rectangles on
+
+    for bbx in bbxs:
+        pt0 = (int(bbx[0]), int(bbx[1]))
+        pt1 = (int(bbx[2]), int(bbx[3]))
+        img = cv2.rectangle(img, pt0, pt1, colour, 1)
+    return util.cv_to_torch(img)
 
 
 def display_image(img=None, mask=None, y=None, pred=None):
@@ -64,9 +82,9 @@ def display_image(img=None, mask=None, y=None, pred=None):
     '''
     fig, ax = plt.subplots(3, 2, figsize=(8, 10))
     if img is not None:
-        img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
+        # img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
         ax[0, 0].set_title('Input')
-        ax[0, 0].imshow(img)
+        ax[0, 0].imshow(img, cmap='gray')
 
     if y is not None:
         y = np.moveaxis(y.detach().numpy(), 0, -1)
@@ -74,7 +92,7 @@ def display_image(img=None, mask=None, y=None, pred=None):
         ax[0, 1].imshow(y)
 
     if mask is not None:
-        mask = mask.numpy()
+        mask = np.moveaxis(mask, 0, -1)
         ax[1, 0].set_title('Mask')
         ax[1, 0].imshow(mask)
 
