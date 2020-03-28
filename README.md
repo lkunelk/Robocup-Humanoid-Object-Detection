@@ -1,2 +1,2 @@
 # Undegraduate Thesis Project (In Progress)
-exploring object detection for soccer plaing humanoid robots
+exploring object detection for soccer playing humanoid robots
