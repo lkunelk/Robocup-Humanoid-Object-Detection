@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from model import CNN, init_weights, find_bounding_boxes
 from my_dataset import initialize_loader, display_image, draw_bounding_boxes
-import train
+from train import Trainer
 import matplotlib.pyplot as plt
 import PIL
 
@@ -22,11 +22,12 @@ def train_model():
     model.apply(init_weights)
     model.load_state_dict(torch.load('outputs/model'))
 
-    train.train(
-        model,
-        learn_rate=0.01,
-        batch_size=8,
-        epochs=20)
+    trainer = Trainer(model,
+                      learn_rate=0.01,
+                      batch_size=8,
+                      epochs=20,
+                      output_folder='outputs')
+    trainer.train()
 
     torch.save(model.state_dict(), 'outputs/model')
 

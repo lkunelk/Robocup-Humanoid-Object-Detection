@@ -7,73 +7,69 @@ from my_dataset import initialize_loader, display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
 
-def train_epoch():
-    # hello
-    pass
+class Trainer:
 
+    def __init__(self, model, learn_rate, batch_size, epochs, output_folder):
+        self.model = model
+        self.learn_rate = learn_rate
+        self.batch_size = batch_size
+        self.epochs = epochs
+        self.output_folder = output_folder
+        self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+        weight = torch.tensor([0.2, 0.6, 0.2])  # weigh importance of the label during training
+        self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
-def train(model,
-          learn_rate=0.01,
-          batch_size=64,
-          epochs=20,
-          output_folder='outputs'):
-    np.random.seed(1)
+        self.train_losses = []
+        self.train_ious = []
+        self.train_radius_losses = []
 
-    train_losses = []
-    train_ious = []
-    train_radius_losses = []
-    valid_losses = []
-    valid_ious = []
-    valid_radius_losses = []
+        self.valid_losses = []
+        self.valid_ious = []
+        self.valid_radius_losses = []
 
-    train_loader, valid_loader, test_loader = initialize_loader(batch_size)
-    print('# of batches train:{} valid:{} test:{}'.format(len(train_loader), len(valid_loader), len(test_loader)))
+        self.train_loader, self.valid_loader, self.test_loader = initialize_loader(batch_size)
+        print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
+            len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
-    print('Starting Training')
-    start_train = time.time()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    weight = torch.Tensor([0.2, 0.6, 0.2])
-    criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
-
-    model.cuda()
-    model.train()
-    for epoch in range(epochs):
+    def train_epoch(self, epoch):
+        self.model.train()
         start_epoch = time.time()
         batchload_times = []
         losses = []
         t_readimg = time.time()
-        for images, masks in train_loader:
+        for images, masks in self.train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
             masks = masks.cuda()
 
-            optimizer.zero_grad()
-            _, logits = model(images.float())
-            loss = criterion(logits, masks.long())
+            self.optimizer.zero_grad()
+            _, logits = self.model(images.float())
+            loss = self.criterion(logits, masks.long())
             loss.backward()
-            optimizer.step()
+            self.optimizer.step()
             losses.append(loss.data.item())
 
             t_readimg = time.time()
-        train_losses.append(sum(losses) / len(losses))
+        self.train_losses.append(sum(losses) / len(losses))
 
         time_elapsed = time.time() - start_epoch
         print('Epoch [{:2d}/{:2d}]: Train Loss: {: 4.6f}, Avg. Batch Load (s): {:.4f}, Epoch (s): {: 4.2f}'.format(
             epoch + 1,
-            epochs,
-            train_losses[-1],
+            self.epochs,
+            self.train_losses[-1],
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
-        model.eval()
+    def validate_epoch(self):
+        self.model.eval()
         start_valid = time.time()
         losses = []
-        for images, masks in valid_loader:
+        for images, masks in self.valid_loader:
             images = images.cuda()
             masks = masks.cuda()
-            outputs, logits = model(images.float())
-            loss = criterion(logits, masks.long())
+            outputs, logits = self.model(images.float())
+            loss = self.criterion(logits, masks.long())
             losses.append(loss.data.item())
 
         bbxs = find_bounding_boxes(outputs[0][1:2])
@@ -88,25 +84,34 @@ def train(model,
             (outputs[0][2], 'gray', 'Robot')
         ])
 
-        valid_losses.append(np.sum(losses) / len(losses))
+        self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
         print('{:15}Valid Loss: {: 4.6f}, validation time (s): {: 4.2f}'.format(
             '',
-            valid_losses[-1],
+            self.valid_losses[-1],
             time_elapsed))
 
-    time_elapsed = time.time() - start_train
-    print('Finished training in: {: 4.2f}min'.format(
-        time_elapsed / 60
-    ))
+    def train(self):
+        print('Starting Training')
+        start_train = time.time()
 
-    # Plot training curve
-    plt.figure()
-    plt.plot(train_losses, "ro-", label="Train")
-    plt.plot(valid_losses, "go-", label="Validation")
-    plt.legend()
-    plt.title("Losses")
-    plt.xlabel("Epochs")
-    plt.savefig(os.path.join(output_folder, "training_curve.png"))
-    plt.show()
+        self.model.cuda()
+        for epoch in range(self.epochs):
+            self.train_epoch(epoch)
+            self.validate_epoch()
+
+        time_elapsed = time.time() - start_train
+        print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
+
+        self.plot_losses()
+
+    def plot_losses(self):
+        plt.figure()
+        plt.plot(self.train_losses, "ro-", label="Train")
+        plt.plot(self.valid_losses, "go-", label="Validation")
+        plt.legend()
+        plt.title("Losses")
+        plt.xlabel("Epochs")
+        plt.savefig(os.path.join(self.output_folder, "training_curve.png"))
+        plt.show()
