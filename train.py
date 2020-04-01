@@ -6,6 +6,10 @@ from model import find_bounding_boxes
 from my_dataset import initialize_loader, display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
+# memory profiler
+import sys
+sys.path.append('/home/nam/engsci_thesis/pytorch_mem_profiler')
+from pytorch_mem_profiler import memory_profiler
 
 class Trainer:
 
@@ -31,6 +35,8 @@ class Trainer:
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
             len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
+        self.profiler = memory_profiler(self.model, print_period=10, csv=True)
+
     def train_epoch(self, epoch):
         self.model.train()
         start_epoch = time.time()
@@ -51,6 +57,8 @@ class Trainer:
             losses.append(loss.data.item())
 
             t_readimg = time.time()
+            self.profiler.record_stats()
+        self.profiler.epoch_end()
         self.train_losses.append(sum(losses) / len(losses))
 
         time_elapsed = time.time() - start_epoch
