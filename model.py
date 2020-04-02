@@ -31,7 +31,8 @@ def find_bounding_boxes(img):
 
 
 def find_batch_bounding_boxes(outputs):
-    '''find bounding boxes for batch of outputs'''
+    '''find bounding boxes for batch of outputs from the model
+    :return 3 dimensional list [batch][class prediction][bounding box]'''
     batch_bbxs = []
 
     for output in outputs:

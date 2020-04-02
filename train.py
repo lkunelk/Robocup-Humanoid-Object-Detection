@@ -2,7 +2,7 @@ import os
 import time
 import numpy as np
 import torch
-from model import find_bounding_boxes
+from model import find_batch_bounding_boxes
 from my_dataset import initialize_loader, display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
@@ -72,17 +72,19 @@ class Trainer:
             loss = self.criterion(logits, masks.long())
             losses.append(loss.data.item())
 
-        bbxs = find_bounding_boxes(outputs[0][1:2])
-        img = draw_bounding_boxes(images[0], bbxs, (255, 0, 0))
+        bbxs = find_batch_bounding_boxes(outputs)
 
-        display_image([
-            (img, None, 'Input'),
-            (masks[0], None, 'Truth'),
-            (outputs[0], None, 'Prediction'),
-            (outputs[0][0], 'gray', 'Background'),
-            (outputs[0][1], 'gray', 'Ball'),
-            (outputs[0][2], 'gray', 'Robot')
-        ])
+        for i in range(1):
+            img = draw_bounding_boxes(images[i], bbxs[i][1], (255, 0, 0))
+
+            display_image([
+                (img, None, 'Input'),
+                (masks[i], None, 'Truth'),
+                (outputs[i], None, 'Prediction'),
+                (outputs[i][0], 'gray', 'Background'),
+                (outputs[i][1], 'gray', 'Ball'),
+                (outputs[i][2], 'gray', 'Robot')
+            ])
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
