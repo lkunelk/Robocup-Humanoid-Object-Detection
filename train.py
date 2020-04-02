@@ -27,7 +27,9 @@ class Trainer:
         self.valid_ious = []
         self.valid_radius_losses = []
 
-        self.train_loader, self.valid_loader, self.test_loader = initialize_loader(batch_size)
+        loaders, datasets = initialize_loader(batch_size)
+        self.train_loader, self.valid_loader, self.test_loader = loaders
+        self.train_dataset, self.valid_dataset, self.test_dataset = datasets
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
             len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
@@ -37,7 +39,7 @@ class Trainer:
         batchload_times = []
         losses = []
         t_readimg = time.time()
-        for images, masks in self.train_loader:
+        for images, masks, img_paths in self.train_loader:
             batchload_times.append(time.time() - t_readimg)
 
             images = images.cuda()
@@ -65,7 +67,7 @@ class Trainer:
         self.model.eval()
         start_valid = time.time()
         losses = []
-        for images, masks in self.valid_loader:
+        for images, masks, img_paths in self.valid_loader:
             images = images.cuda()
             masks = masks.cuda()
             outputs, logits = self.model(images.float())
@@ -73,7 +75,7 @@ class Trainer:
             losses.append(loss.data.item())
 
         bbxs = find_batch_bounding_boxes(outputs)
-        self.calculate_stats(bbxs, masks)
+        self.calculate_stats(bbxs, masks, self.valid_dataset, img_paths)
 
         for i in range(1):
             print(bbxs[i][1])
@@ -110,7 +112,7 @@ class Trainer:
 
         self.plot_losses()
 
-    def calculate_stats(self, batch_bbxs, batch_masks, img_paths):
+    def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_paths):
         '''calculate true/false positive/negative
         the predicted center of bounding box needs to fall on the ground truth prediction'''
         # calculate stats for balls for now
@@ -120,15 +122,27 @@ class Trainer:
             for pred_class in [1]:
                 bbxs = bbxs[pred_class]
                 for bbx in bbxs:
+
                     x_center = int((bbx[0] + bbx[2]) / 2)
                     y_center = int((bbx[1] + bbx[3]) / 2)
                     if masks[y_center][x_center] == pred_class:
                         bbx.append('tp')
                         stats[0] += 1
-                    if not masks[y_center][x_center] == pred_class:
+                    elif not masks[y_center][x_center] == pred_class:
                         bbx.append('fp')
                         stats[1] += 1
+
+                true_bbxs = dataset.get_bounding_boxes(img_paths[batch_ind])
+                if not true_bbxs and not bbxs:
+                    # our dataset does not test for true negatives at the moment,every picture we read must have a label
+                    bbxs.append('tn')
+                    stats[2]
+                elif true_bbxs and not bbxs:
+                    for true_bbx in true_bbxs:
+                        bbxs.append('fn')
+                        stats[3]
         return stats
+
     def plot_losses(self):
         plt.figure()
         plt.plot(self.train_losses, "ro-", label="Train")
