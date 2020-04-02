@@ -13,6 +13,7 @@ import util
 TESTING = True
 
 train_path = '../bit-bots-ball-dataset-2018/train'
+valid_path = '../bit-bots-ball-dataset-2018/valid'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
@@ -24,14 +25,12 @@ def initialize_loader(batch_size, shuffle=True):
     ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    valid_folders = [os.path.join(negative_path, folder) for folder in os.listdir(negative_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
-    full_dataset = MyDataSet(train_folders, transform=transform, train=True)
-    test_dataset = MyDataSet(test_folders, transform=transform, train=False)
-
-    train_size = int(0.8 * len(full_dataset))
-    valid_size = len(full_dataset) - train_size
-    train_dataset, valid_dataset = random_split(full_dataset, [train_size, valid_size])
+    train_dataset = MyDataSet(train_folders, transform=transform)
+    valid_dataset = MyDataSet(valid_folders, transform=transform)
+    test_dataset = MyDataSet(test_folders, transform=transform)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
@@ -47,12 +46,12 @@ def initialize_loader(batch_size, shuffle=True):
                              shuffle=shuffle)
 
     print('train dataset: # images {}, # robots {}, # balls {}'.format(
-        len(full_dataset),
-        full_dataset.num_robot_labels,
-        full_dataset.num_ball_labels
+        len(train_dataset),
+        train_dataset.num_robot_labels,
+        train_dataset.num_ball_labels
     ))
 
-    return train_loader, valid_loader, test_loader
+    return (train_loader, valid_loader, test_loader), (train_dataset, valid_dataset, test_dataset)
 
 
 def draw_bounding_boxes(img, bbxs, colour):
@@ -66,6 +65,8 @@ def draw_bounding_boxes(img, bbxs, colour):
     img = img.copy()  # cv2 seems to like copies to draw rectangles on
 
     for bbx in bbxs:
+        if isinstance(bbx, str):
+            return util.cv_to_torch(img)
         pt0 = (int(bbx[0]), int(bbx[1]))
         pt1 = (int(bbx[2]), int(bbx[3]))
         img = cv2.rectangle(img, pt0, pt1, colour, 1)
@@ -189,4 +190,7 @@ class MyDataSet(Dataset):
         mask = np.array(mask)
         img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
         mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
-        return img, mask
+        return img, mask, img_path
+
+    def get_bounding_boxes(self, img_path):
+        return self.bounding_boxes[img_path]
