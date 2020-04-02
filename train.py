@@ -1,5 +1,6 @@
 import os
 import time
+import enum
 import numpy as np
 import torch
 from model import find_batch_bounding_boxes
@@ -8,6 +9,11 @@ import matplotlib.pyplot as plt
 
 
 class Trainer:
+    class ErrorType(enum.Enum):
+        TRUE_POSITIVE = 0
+        FALSE_POSITIVE = 1
+        TRUE_NEGATIVE = 2
+        FALSE_NEGATIVE = 3
 
     def __init__(self, model, learn_rate, batch_size, epochs, output_folder):
         self.model = model
@@ -67,6 +73,7 @@ class Trainer:
         self.model.eval()
         start_valid = time.time()
         losses = []
+        stats = np.zeros(4, dtype=int)
         for images, masks, img_paths in self.valid_loader:
             images = images.cuda()
             masks = masks.cuda()
@@ -74,8 +81,8 @@ class Trainer:
             loss = self.criterion(logits, masks.long())
             losses.append(loss.data.item())
 
-        bbxs = find_batch_bounding_boxes(outputs)
-        self.calculate_stats(bbxs, masks, self.valid_dataset, img_paths)
+            bbxs = find_batch_bounding_boxes(outputs)
+            stats += self.calculate_stats(bbxs, masks, self.valid_dataset, img_paths)
 
         for i in range(1):
             print(bbxs[i][1])
@@ -93,9 +100,13 @@ class Trainer:
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
-        print('{:15}Valid Loss: {: 4.6f}, validation time (s): {: 4.2f}'.format(
+        print('{:15}Valid Loss: {: 4.6f}, tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}, validation time (s): {: 4.2f}'.format(
             '',
             self.valid_losses[-1],
+            stats[self.ErrorType.TRUE_POSITIVE.value],
+            stats[self.ErrorType.FALSE_POSITIVE.value],
+            stats[self.ErrorType.TRUE_NEGATIVE.value],
+            stats[self.ErrorType.FALSE_NEGATIVE.value],
             time_elapsed))
 
     def train(self):
@@ -118,7 +129,7 @@ class Trainer:
         the predicted center of bounding box needs to fall on the ground truth prediction
         """
         # calculate stats for balls for now
-        stats = np.zeros(4)
+        stats = np.zeros(4, dtype=int)
         for batch_ind, bbxs in enumerate(batch_bbxs):
             masks = batch_masks[batch_ind]
             for pred_class in [1]:
@@ -129,20 +140,20 @@ class Trainer:
                     y_center = int((bbx[1] + bbx[3]) / 2)
                     if masks[y_center][x_center] == pred_class:
                         bbx.append('tp')
-                        stats[0] += 1
+                        stats[self.ErrorType.TRUE_POSITIVE.value] += 1
                     elif not masks[y_center][x_center] == pred_class:
                         bbx.append('fp')
-                        stats[1] += 1
+                        stats[self.ErrorType.FALSE_POSITIVE.value] += 1
 
                 true_bbxs = dataset.get_bounding_boxes(img_paths[batch_ind])
                 if not true_bbxs and not bbxs:
                     # our dataset does not test for true negatives at the moment,every picture we read must have a label
                     bbxs.append('tn')
-                    stats[2] += 1
+                    stats[self.ErrorType.TRUE_NEGATIVE.value] += 1
                 elif true_bbxs and not bbxs:
                     for _ in true_bbxs:
                         bbxs.append('fn')
-                        stats[3] += 1
+                        stats[self.ErrorType.FALSE_NEGATIVE.value] += 1
         return stats
 
     def plot_losses(self):
