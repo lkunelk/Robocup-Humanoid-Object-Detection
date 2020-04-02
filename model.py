@@ -11,16 +11,16 @@ def init_weights(m):
         m.bias.data.fill_(0.00)
 
 
-def find_bounding_boxes(activations):
+def find_bounding_boxes(img):
     '''
-    Find blobs in the picture
+    Find bounding boxes for blobs in the picture
     activations numpy array 1xWxH image values 0 to 1
     :return:  bounding boxes of blobs [x0, y0, x1, y1]
     '''
-    activations = util.torch_to_cv(activations)
-    activations = np.round(activations)
-    activations = activations.astype(np.uint8)
-    contours, hierarchy = cv2.findContours(activations, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    img = util.torch_to_cv(img)
+    img = np.round(img)
+    img = img.astype(np.uint8)
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     bounding_boxes = []
     for c in contours:
@@ -28,6 +28,22 @@ def find_bounding_boxes(activations):
         bounding_boxes.append([x, y, x + w, y + h])
 
     return bounding_boxes
+
+
+def find_batch_bounding_boxes(outputs):
+    '''find bounding boxes for batch of outputs'''
+    batch_bbxs = []
+
+    for output in outputs:
+        output_bbxs = []
+
+        for label in range(3):
+            img = output[label]
+            output_bbxs.append(find_bounding_boxes(img))
+
+        batch_bbxs.append(output_bbxs)
+
+    return batch_bbxs
 
 
 class CNN(nn.Module):
