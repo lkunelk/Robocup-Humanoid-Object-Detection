@@ -113,10 +113,12 @@ class Trainer:
         self.plot_losses()
 
     def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_paths):
-        '''calculate true/false positive/negative
-        the predicted center of bounding box needs to fall on the ground truth prediction'''
+        """
+        calculate true/false positive/negative
+        the predicted center of bounding box needs to fall on the ground truth prediction
+        """
         # calculate stats for balls for now
-        stats = np.zeros((4))
+        stats = np.zeros(4)
         for batch_ind, bbxs in enumerate(batch_bbxs):
             masks = batch_masks[batch_ind]
             for pred_class in [1]:
@@ -136,11 +138,11 @@ class Trainer:
                 if not true_bbxs and not bbxs:
                     # our dataset does not test for true negatives at the moment,every picture we read must have a label
                     bbxs.append('tn')
-                    stats[2]
+                    stats[2] += 1
                 elif true_bbxs and not bbxs:
-                    for true_bbx in true_bbxs:
+                    for _ in true_bbxs:
                         bbxs.append('fn')
-                        stats[3]
+                        stats[3] += 1
         return stats
 
     def plot_losses(self):

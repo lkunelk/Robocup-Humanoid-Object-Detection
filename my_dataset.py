@@ -25,7 +25,7 @@ def initialize_loader(batch_size, shuffle=True):
     ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    valid_folders = [os.path.join(negative_path, folder) for folder in os.listdir(negative_path)]
+    valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
     train_dataset = MyDataSet(train_folders, transform=transform)
