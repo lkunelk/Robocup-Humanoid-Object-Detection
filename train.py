@@ -73,8 +73,10 @@ class Trainer:
             losses.append(loss.data.item())
 
         bbxs = find_batch_bounding_boxes(outputs)
+        self.calculate_stats(bbxs, masks)
 
         for i in range(1):
+            print(bbxs[i][1])
             img = draw_bounding_boxes(images[i], bbxs[i][1], (255, 0, 0))
 
             display_image([
@@ -108,6 +110,25 @@ class Trainer:
 
         self.plot_losses()
 
+    def calculate_stats(self, batch_bbxs, batch_masks, img_paths):
+        '''calculate true/false positive/negative
+        the predicted center of bounding box needs to fall on the ground truth prediction'''
+        # calculate stats for balls for now
+        stats = np.zeros((4))
+        for batch_ind, bbxs in enumerate(batch_bbxs):
+            masks = batch_masks[batch_ind]
+            for pred_class in [1]:
+                bbxs = bbxs[pred_class]
+                for bbx in bbxs:
+                    x_center = int((bbx[0] + bbx[2]) / 2)
+                    y_center = int((bbx[1] + bbx[3]) / 2)
+                    if masks[y_center][x_center] == pred_class:
+                        bbx.append('tp')
+                        stats[0] += 1
+                    if not masks[y_center][x_center] == pred_class:
+                        bbx.append('fp')
+                        stats[1] += 1
+        return stats
     def plot_losses(self):
         plt.figure()
         plt.plot(self.train_losses, "ro-", label="Train")

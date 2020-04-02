@@ -20,7 +20,7 @@ def train_model():
         os.makedirs(output_folder)
 
     model.apply(init_weights)
-    model.load_state_dict(torch.load('outputs/model'))
+    # model.load_state_dict(torch.load('outputs/model'))
 
     trainer = Trainer(model,
                       learn_rate=0.01,
