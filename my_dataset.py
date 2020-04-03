@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import util
 
-TESTING = True
+TESTING = False
 
 train_path = '../bit-bots-ball-dataset-2018/train'
 valid_path = '../bit-bots-ball-dataset-2018/valid'
@@ -45,10 +45,22 @@ def initialize_loader(batch_size, shuffle=True):
                              num_workers=64,
                              shuffle=shuffle)
 
-    print('train dataset: # images {}, # robots {}, # balls {}'.format(
+    print('train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(train_dataset),
         train_dataset.num_robot_labels,
         train_dataset.num_ball_labels
+    ))
+
+    print('valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(valid_dataset),
+        valid_dataset.num_robot_labels,
+        valid_dataset.num_ball_labels
+    ))
+
+    print('test dataset:  # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(test_dataset),
+        test_dataset.num_robot_labels,
+        test_dataset.num_ball_labels
     ))
 
     return (train_loader, valid_loader, test_loader), (train_dataset, valid_dataset, test_dataset)
