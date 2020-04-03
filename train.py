@@ -69,12 +69,18 @@ class Trainer:
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
-    def validate_epoch(self):
+    def test_model(self, test_type):
+        dataset, loader = None, None
+        if test_type == 'valid':
+            dataset, loader = self.valid_dataset, self.valid_loader
+        elif test_type == 'test':
+            dataset, loader = self.test_dataset, self.test_loader
+
         self.model.eval()
         start_valid = time.time()
         losses = []
         stats = np.zeros(4, dtype=int)
-        for images, masks, img_paths in self.valid_loader:
+        for images, masks, img_paths in loader:
             images = images.cuda()
             masks = masks.cuda()
             outputs, logits = self.model(images.float())
@@ -82,7 +88,7 @@ class Trainer:
             losses.append(loss.data.item())
 
             bbxs = find_batch_bounding_boxes(outputs)
-            stats += self.calculate_stats(bbxs, masks, self.valid_dataset, img_paths)
+            stats += self.calculate_stats(bbxs, masks, dataset, img_paths)
 
         for i in range(1):
             print(bbxs[i][1])
@@ -100,14 +106,16 @@ class Trainer:
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
-        print('{:15}Valid Loss: {: 4.6f}, tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}, validation time (s): {: 4.2f}'.format(
-            '',
+        print('{:>20} Loss: {: 4.6f}, tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}, {} time (s): {: 4.2f}'.format(
+            test_type,
             self.valid_losses[-1],
             stats[self.ErrorType.TRUE_POSITIVE.value],
             stats[self.ErrorType.FALSE_POSITIVE.value],
             stats[self.ErrorType.TRUE_NEGATIVE.value],
             stats[self.ErrorType.FALSE_NEGATIVE.value],
+            test_type,
             time_elapsed))
+
 
     def train(self):
         print('Starting Training')
@@ -116,7 +124,9 @@ class Trainer:
         self.model.cuda()
         for epoch in range(self.epochs):
             self.train_epoch(epoch)
-            self.validate_epoch()
+            self.test_model('valid')
+
+        self.test_model('test')
 
         time_elapsed = time.time() - start_train
         print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
