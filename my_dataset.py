@@ -202,7 +202,7 @@ class MyDataSet(Dataset):
         mask = np.array(mask)
         img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
         mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
-        return img, mask, img_path
+        return img, mask, index
 
     def get_bounding_boxes(self, img_path):
         return self.bounding_boxes[img_path]

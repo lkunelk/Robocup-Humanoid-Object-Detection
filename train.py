@@ -22,7 +22,7 @@ class Trainer:
         self.epochs = epochs
         self.output_folder = output_folder
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor([0.2, 0.6, 0.2])  # weigh importance of the label during training
+        weight = torch.tensor([1., 1., 0.0])  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
         self.train_losses = []
@@ -80,7 +80,7 @@ class Trainer:
         start_valid = time.time()
         losses = []
         stats = np.zeros(4, dtype=int)
-        for images, masks, img_paths in loader:
+        for images, masks, indexes in loader:
             images = images.cuda()
             masks = masks.cuda()
             outputs, logits = self.model(images.float())
@@ -88,7 +88,7 @@ class Trainer:
             losses.append(loss.data.item())
 
             bbxs = find_batch_bounding_boxes(outputs)
-            stats += self.calculate_stats(bbxs, masks, dataset, img_paths)
+            stats += self.calculate_stats(bbxs, masks, dataset, indexes)
 
         for i in range(1):
             print(bbxs[i][1])
@@ -133,7 +133,7 @@ class Trainer:
 
         self.plot_losses()
 
-    def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_paths):
+    def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_indexes):
         """
         calculate true/false positive/negative
         the predicted center of bounding box needs to fall on the ground truth prediction
@@ -142,6 +142,7 @@ class Trainer:
         stats = np.zeros(4, dtype=int)
         for batch_ind, bbxs in enumerate(batch_bbxs):
             masks = batch_masks[batch_ind]
+            img_index = img_indexes[batch_ind]
             for pred_class in [1]:
                 bbxs = bbxs[pred_class]
                 for bbx in bbxs:
@@ -155,7 +156,16 @@ class Trainer:
                         bbx.append('fp')
                         stats[self.ErrorType.FALSE_POSITIVE.value] += 1
 
-                true_bbxs = dataset.get_bounding_boxes(img_paths[batch_ind])
+                        # #TEMP
+                        # img, _, _ = dataset[img_index]
+                        # img = draw_bounding_boxes(img, [bbx], (255, 0, 0))
+                        #
+                        # display_image([
+                        #     (img, None, 'Input' + str(stats[self.ErrorType.FALSE_POSITIVE.value])),
+                        #     (masks, None, 'Truth')
+                        # ])
+
+                true_bbxs = dataset[img_index]
                 if not true_bbxs and not bbxs:
                     # our dataset does not test for true negatives at the moment,every picture we read must have a label
                     bbxs.append('tn')
