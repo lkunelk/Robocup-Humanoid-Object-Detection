@@ -24,7 +24,7 @@ def train_model():
 
     trainer = Trainer(model,
                       learn_rate=0.01,
-                      batch_size=16,
+                      batch_size=64,
                       epochs=20,
                       output_folder='outputs')
     trainer.train()
