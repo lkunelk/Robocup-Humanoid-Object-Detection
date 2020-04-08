@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import cv2
 import numpy as np
+import util
 
 
 def init_weights(m):
@@ -10,15 +11,40 @@ def init_weights(m):
         m.bias.data.fill_(0.00)
 
 
-def find_bounding_boxes(activations):
+def find_bounding_boxes(img):
     '''
-    Finds blob with highest activation
-    :return:  bounding box of the blob
+    Find bounding boxes for blobs in the picture
+    activations numpy array 1xWxH image values 0 to 1
+    :return:  bounding boxes of blobs [x0, y0, x1, y1]
     '''
-    activations = activations.numpy()
-    bounding_boxes = np.where(activations == np.amax(activations))
+    img = util.torch_to_cv(img)
+    img = np.round(img)
+    img = img.astype(np.uint8)
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    bounding_boxes = []
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        bounding_boxes.append([x, y, x + w, y + h])
 
     return bounding_boxes
+
+
+def find_batch_bounding_boxes(outputs):
+    '''find bounding boxes for batch of outputs from the model
+    :return 3 dimensional list [batch][class prediction][bounding box]'''
+    batch_bbxs = []
+
+    for output in outputs:
+        output_bbxs = []
+
+        for label in range(3):
+            img = output[label]
+            output_bbxs.append(find_bounding_boxes(img))
+
+        batch_bbxs.append(output_bbxs)
+
+    return batch_bbxs
 
 
 class CNN(nn.Module):
@@ -157,9 +183,7 @@ class CNN(nn.Module):
         x = torch.cat((conv1_out, x), 1)
         x = self.conv11(x)
         x = self.conv12(x)
-        logit = self.conv13(x)
+        logit = self.conv13(x)  # used for calculating loss
+        output = torch.nn.Softmax2d()(logit)
 
-        clamped = torch.nn.Softmax2d()(logit)
-        # clamped = logit.clamp(min=0.0, max=1.0)
-
-        return logit, clamped
+        return output, logit

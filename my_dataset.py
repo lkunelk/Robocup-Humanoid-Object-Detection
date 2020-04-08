@@ -8,91 +8,95 @@ import numpy as np
 import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
+import util
 
 TESTING = False
 
 train_path = '../bit-bots-ball-dataset-2018/train'
+valid_path = '../bit-bots-ball-dataset-2018/valid'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(batch_size):
+def initialize_loader(batch_size, shuffle=True):
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize(150, interpolation=Image.NEAREST),
         torchvision.transforms.CenterCrop((150, 200)),
     ])
 
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
-    full_dataset = MyDataSet(train_folders, transform=transform, train=True)
-    test_dataset = MyDataSet(test_folders, transform=transform, train=False)
-
-    train_size = int(0.8 * len(full_dataset))
-    valid_size = len(full_dataset) - train_size
-    train_dataset, valid_dataset = random_split(full_dataset, [train_size, valid_size])
+    train_dataset = MyDataSet(train_folders, transform=transform)
+    valid_dataset = MyDataSet(valid_folders, transform=transform)
+    test_dataset = MyDataSet(test_folders, transform=transform)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True)
+                              shuffle=shuffle)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
                               num_workers=64,
-                              shuffle=True)
+                              shuffle=shuffle)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=64,
-                             shuffle=True)
+                             shuffle=shuffle)
 
-    print('train dataset: # images {}, # robots {}, # balls {}'.format(
-        len(full_dataset),
-        full_dataset.num_robot_labels,
-        full_dataset.num_ball_labels
+    print('train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(train_dataset),
+        train_dataset.num_robot_labels,
+        train_dataset.num_ball_labels
     ))
 
-    return train_loader, valid_loader, test_loader
+    print('valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(valid_dataset),
+        valid_dataset.num_robot_labels,
+        valid_dataset.num_ball_labels
+    ))
+
+    print('test dataset:  # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(test_dataset),
+        test_dataset.num_robot_labels,
+        test_dataset.num_ball_labels
+    ))
+
+    return (train_loader, valid_loader, test_loader), (train_dataset, valid_dataset, test_dataset)
 
 
-def display_image(img=None, mask=None, y=None, pred=None):
+def draw_bounding_boxes(img, bbxs, colour):
     '''
-    :param img: torch tensor channelxWxH
-    :param mask: ground truth label (0, 1)
-    :param y: grayscale output from model
-    :param pred: y with bounding box
-    :return: None
+    :param img: rgb torch image
+    :param bbxs:
+    :param colour:
+    :return:
+    '''
+    img = util.torch_to_cv(img)
+    img = img.copy()  # cv2 seems to like copies to draw rectangles on
+
+    for bbx in bbxs:
+        if isinstance(bbx, str):
+            return util.cv_to_torch(img)
+        pt0 = (int(bbx[0]), int(bbx[1]))
+        pt1 = (int(bbx[2]), int(bbx[3]))
+        img = cv2.rectangle(img, pt0, pt1, colour, 1)
+    return util.cv_to_torch(img)
+
+
+def display_image(to_plot):
+    '''
+    :param to_plot: list of tuples of the form (img [(cxhxw) numpy array], cmap [str], title [str])
     '''
     fig, ax = plt.subplots(3, 2, figsize=(8, 10))
-    if img is not None:
-        img = np.moveaxis(img.numpy(), 0, -1)  # HxWxchannel
-        ax[0, 0].set_title('Input')
-        ax[0, 0].imshow(img)
+    for i, plot_info in enumerate(to_plot):
+        img = util.torch_to_cv(plot_info[0])
+        cmap = plot_info[1]
+        title = plot_info[2]
 
-    if y is not None:
-        y = np.moveaxis(y.detach().numpy(), 0, -1)
-        ax[0, 1].set_title('Output')
-        ax[0, 1].imshow(y)
-
-    if mask is not None:
-        mask = mask.numpy()
-        ax[1, 0].set_title('Mask')
-        ax[1, 0].imshow(mask)
-
-    if pred is not None:
-        p = pred.detach().numpy()[0]
-        ax[1, 1].set_title('Prediction: other')
-        ax[1, 1].imshow(p, cmap='gray')
-
-    if pred is not None:
-        p = pred.detach().numpy()[1]
-        ax[2, 0].set_title('Prediction: ball')
-        ax[2, 0].imshow(p, cmap='gray')
-
-    if pred is not None:
-        p = pred.detach().numpy()[2]
-        ax[2, 1].set_title('Prediction: robot')
-        ax[2, 1].imshow(p, cmap='gray')
-
+        ax[i // 2, i % 2].imshow(img, cmap=cmap)
+        ax[i // 2, i % 2].set_title(title)
     plt.show()
 
 
@@ -198,4 +202,7 @@ class MyDataSet(Dataset):
         mask = np.array(mask)
         img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
         mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
-        return img, mask
+        return img, mask, index
+
+    def get_bounding_boxes(self, img_path):
+        return self.bounding_boxes[img_path]

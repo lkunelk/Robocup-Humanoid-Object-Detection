@@ -2,10 +2,11 @@ import os
 import torch
 import numpy as np
 from model import CNN, init_weights, find_bounding_boxes
-from my_dataset import initialize_loader, display_image
-import train
+from my_dataset import initialize_loader, display_image, draw_bounding_boxes
+from train import Trainer
 import matplotlib.pyplot as plt
-import cv2
+import PIL
+
 
 def train_model():
     model = CNN(
@@ -19,36 +20,40 @@ def train_model():
         os.makedirs(output_folder)
 
     model.apply(init_weights)
+    # model.load_state_dict(torch.load('outputs/model'))
 
-    train.train(
-        model,
-        learn_rate=0.01,
-        batch_size=8,
-        epochs=20)
+    trainer = Trainer(model,
+                      learn_rate=0.01,
+                      batch_size=64,
+                      epochs=20,
+                      output_folder='outputs')
+    trainer.train()
 
     torch.save(model.state_dict(), 'outputs/model')
 
+
 def test_bounding_box():
-    train, valid, test = initialize_loader(10)
+    train, valid, test = initialize_loader(10, shuffle=False)
 
     model = CNN()
     model.load_state_dict(torch.load('outputs/model'))
     model.eval()
 
-    for batch, mask, bbx in train:
-        output, _ = model(batch.float())
-        display_image(pred=output[0])
+    img = None
+
+    for batch, mask in train:
+        inp = batch[0]
+        _, img = model(batch.float())
         break
 
-    img = np.zeros((152, 200, 1))
-    center = (75, 40)
-    size = (20, 30)
-    img = cv2.ellipse(img, center, size, 0, 0, 360, (1), -1)
-    cv2.imshow('hi?', img)
-    cv2.waitKey(0)
-    img = np.rollaxis(img, 2)
-    bbx = find_bounding_boxes(torch.Tensor(img))
-    print(bbx)
+    img = img[0][1:2].detach().numpy()  # get ball classification output as (1xHxW) numpy array
+    bbxs = find_bounding_boxes(img)
+    inp = inp.detach().numpy()
+    inp = draw_bounding_boxes(inp, bbxs, 255)
+    display_image([
+        (inp, None, 'Input'),
+        (img, 'gray', 'Output')])
+
 
 if __name__ == '__main__':
     train_model()
