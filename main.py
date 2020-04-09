@@ -6,6 +6,7 @@ from my_dataset import initialize_loader, display_image, stream_image, draw_boun
 from train import Trainer
 import matplotlib.pyplot as plt
 import PIL
+import cv2
 
 
 def train_model():
@@ -43,7 +44,7 @@ def display_dataset():
             img = img.numpy()
             bbxs = traind.get_bounding_boxes(ind)
             img = draw_bounding_boxes(img, bbxs, 255)
-            stream_image(img, 10)
+            stream_image(img, 10, 4)
 
 
 if __name__ == '__main__':

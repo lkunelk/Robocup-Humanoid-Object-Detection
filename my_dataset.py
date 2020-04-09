@@ -94,10 +94,13 @@ def display_image(to_plot):
     plt.show()
 
 
-def stream_image(img, wait):
+def stream_image(img, wait, scale):
     img = util.torch_to_cv(img)
+    width, height, _ = img.shape
+    img = cv2.resize(img, (height * scale, width * scale))
     cv2.imshow('My_Window', img)
     cv2.waitKey(wait)
+
 
 def read_image(path):
     # using opencv imread crashes Pytorch DataLoader for some reason
@@ -214,12 +217,12 @@ class MyDataSet(Dataset):
 
         # we need to scale bounding boxes since we applied a transformation
         height, width, _ = np.shape(img)
-        height_scale =  self.target_height / height
-        width_scale =  self.target_width / width
-        bbxs =  copy.deepcopy(self.bounding_boxes[img_path])
+        height_scale = self.target_height / height
+        width_offset = (width * height_scale - self.target_width) / 2
+        bbxs = copy.deepcopy(self.bounding_boxes[img_path])
         for bbx in bbxs:
-            bbx[0] = int(bbx[0] * width_scale)
+            bbx[0] = int(bbx[0] * height_scale - width_offset)
             bbx[1] = int(bbx[1] * height_scale)
-            bbx[2] = int(bbx[2] * width_scale)
+            bbx[2] = int(bbx[2] * height_scale - width_offset)
             bbx[3] = int(bbx[3] * height_scale)
         return bbxs
