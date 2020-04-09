@@ -12,15 +12,18 @@ from PIL import Image
 import util
 
 train_path = '../bit-bots-ball-dataset-2018/train'
-valid_path = '../bit-bots-ball-dataset-2018/test'
+valid_path = '../bit-bots-ball-dataset-2018/valid'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(batch_size, shuffle=True):
+def initialize_loader(batch_size, num_workers=64, shuffle=True):
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
+    print(valid_folders)
+
+    train_folders = ['../bit-bots-ball-dataset-2018/valid/bitbots-set00-05']
 
     train_dataset = MyDataSet(train_folders, (150, 200))
     valid_dataset = MyDataSet(valid_folders, (150, 200))
@@ -28,15 +31,15 @@ def initialize_loader(batch_size, shuffle=True):
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
-                              num_workers=64,
+                              num_workers=num_workers,
                               shuffle=shuffle)
     valid_loader = DataLoader(valid_dataset,
                               batch_size=batch_size,
-                              num_workers=64,
+                              num_workers=num_workers,
                               shuffle=shuffle)
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
-                             num_workers=64,
+                             num_workers=num_workers,
                              shuffle=shuffle)
 
     print('train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
@@ -98,7 +101,8 @@ def stream_image(img, wait, scale):
     img = util.torch_to_cv(img)
     width, height, _ = img.shape
     img = cv2.resize(img, (height * scale, width * scale))
-    cv2.imshow('My_Window', img)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    cv2.imshow('my_window', img)
     cv2.waitKey(wait)
 
 
@@ -125,7 +129,7 @@ class MyDataSet(Dataset):
         self.target_height = target_dim[0]
         self.target_width = target_dim[1]
         self.transform = torchvision.transforms.Compose([
-            torchvision.transforms.Resize(self.target_height, interpolation=Image.NEAREST),
+            torchvision.transforms.Resize(self.target_height, interpolation=Image.BILINEAR),
             torchvision.transforms.CenterCrop((self.target_height, self.target_width)),
         ])
 
@@ -226,3 +230,12 @@ class MyDataSet(Dataset):
             bbx[2] = int(bbx[2] * height_scale - width_offset)
             bbx[3] = int(bbx[3] * height_scale)
         return bbxs
+
+    def visualize_images(self, delay=10, scale=4):
+        self.img_paths = list(sorted(self.img_paths))  # we want names to be sorted so that they are displayed in order
+        for ind in range(len(self)):
+            img, _, _ = self[ind]
+            bbxs = self.get_bounding_boxes(ind)
+            img = draw_bounding_boxes(img, bbxs, 255)
+            stream_image(img, delay, scale)
+            print(self.img_paths[ind])

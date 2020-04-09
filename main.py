@@ -34,17 +34,8 @@ def train_model():
 
 
 def display_dataset():
-    [trainl, _, _], [traind, _, _] = initialize_loader(6, shuffle=False)
-
-    img = None
-
-    for batch, masks, indexes in trainl:
-        to_display = []
-        for img, ind in zip(batch, indexes):
-            img = img.numpy()
-            bbxs = traind.get_bounding_boxes(ind)
-            img = draw_bounding_boxes(img, bbxs, 255)
-            stream_image(img, 10, 4)
+    [trainl, _, _], [traind, _, testd] = initialize_loader(6, num_workers=1, shuffle=False)
+    traind.visualize_images(delay=10)
 
 
 if __name__ == '__main__':
