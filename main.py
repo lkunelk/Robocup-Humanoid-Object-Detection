@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 from model import CNN, init_weights, find_bounding_boxes
-from my_dataset import initialize_loader, display_image, draw_bounding_boxes
+from my_dataset import initialize_loader, display_image, stream_image, draw_bounding_boxes
 from train import Trainer
 import matplotlib.pyplot as plt
 import PIL
@@ -32,28 +32,19 @@ def train_model():
     torch.save(model.state_dict(), 'outputs/model')
 
 
-def test_bounding_box():
-    train, valid, test = initialize_loader(10, shuffle=False)
-
-    model = CNN()
-    model.load_state_dict(torch.load('outputs/model'))
-    model.eval()
+def display_dataset():
+    [trainl, _, _], [traind, _, _] = initialize_loader(6, shuffle=False)
 
     img = None
 
-    for batch, mask in train:
-        inp = batch[0]
-        _, img = model(batch.float())
-        break
-
-    img = img[0][1:2].detach().numpy()  # get ball classification output as (1xHxW) numpy array
-    bbxs = find_bounding_boxes(img)
-    inp = inp.detach().numpy()
-    inp = draw_bounding_boxes(inp, bbxs, 255)
-    display_image([
-        (inp, None, 'Input'),
-        (img, 'gray', 'Output')])
+    for batch, masks, indexes in trainl:
+        to_display = []
+        for img, ind in zip(batch, indexes):
+            img = img.numpy()
+            bbxs = traind.get_bounding_boxes(ind)
+            img = draw_bounding_boxes(img, bbxs, 255)
+            stream_image(img, 10)
 
 
 if __name__ == '__main__':
-    train_model()
+    display_dataset()

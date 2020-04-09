@@ -3,14 +3,13 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torch.utils.data.sampler import SubsetRandomSampler
 import enum
 import os
+import copy
 import cv2
 import numpy as np
 import torchvision
 import matplotlib.pyplot as plt
 from PIL import Image
 import util
-
-TESTING = False
 
 train_path = '../bit-bots-ball-dataset-2018/train'
 valid_path = '../bit-bots-ball-dataset-2018/test'
@@ -19,18 +18,13 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size, shuffle=True):
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(150, interpolation=Image.NEAREST),
-        torchvision.transforms.CenterCrop((150, 200)),
-    ])
-
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
-    train_dataset = MyDataSet(train_folders, transform=transform)
-    valid_dataset = MyDataSet(valid_folders, transform=transform)
-    test_dataset = MyDataSet(test_folders, transform=transform)
+    train_dataset = MyDataSet(train_folders, (150, 200))
+    valid_dataset = MyDataSet(valid_folders, (150, 200))
+    test_dataset = MyDataSet(test_folders, (150, 200))
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
@@ -100,6 +94,11 @@ def display_image(to_plot):
     plt.show()
 
 
+def stream_image(img, wait):
+    img = util.torch_to_cv(img)
+    cv2.imshow('My_Window', img)
+    cv2.waitKey(wait)
+
 def read_image(path):
     # using opencv imread crashes Pytorch DataLoader for some reason
     return Image.open(path)
@@ -115,11 +114,17 @@ class Label(enum.Enum):
 
 
 class MyDataSet(Dataset):
-    def __init__(self, folder_paths, transform=None, train=False):
+    def __init__(self, folder_paths, target_dim):
+
         self.folder_paths = folder_paths  # folders of the images
         self.img_paths = []  # all individual images
         self.bounding_boxes = {}  # image paths and their labels
-        self.transform = transform
+        self.target_height = target_dim[0]
+        self.target_width = target_dim[1]
+        self.transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(self.target_height, interpolation=Image.NEAREST),
+            torchvision.transforms.CenterCrop((self.target_height, self.target_width)),
+        ])
 
         # label statistics
         self.num_ball_labels = 0
@@ -133,36 +138,35 @@ class MyDataSet(Dataset):
                     file_labels = os.path.join(path, file)
                     self.read_labels(path, file_labels)
 
-            if TESTING:
-                break  # keep dataset small
-
     def read_labels(self, path, file_labels):
         # store full path with label for each image
         with open(file_labels) as labels:
             for i, line in enumerate(labels):
-                if i > 5:  # ignore first few metadata lines
-                    try:
-                        label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
-                    except:
-                        # ignore unknown format
-                        continue
-                    img_path = os.path.join(path, img)
+                if i <= 5:  # ignore first few metadata lines
+                    continue
 
-                    if label == 'label::ball':
-                        label = Label.BALL
-                        self.num_ball_labels += 1
-                    elif label == 'label::robot':
-                        label = Label.ROBOT
-                        self.num_robot_labels += 1
-                    else:
-                        print('Unexpected Label:', label)
+                try:
+                    label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
+                except:
+                    # ignore unknown format
+                    continue
+                img_path = os.path.join(path, img)
 
-                    if img_path not in self.img_paths:
-                        self.bounding_boxes[img_path] = []
-                        self.img_paths.append(img_path)
+                if label == 'label::ball':
+                    label = Label.BALL
+                    self.num_ball_labels += 1
+                elif label == 'label::robot':
+                    label = Label.ROBOT
+                    self.num_robot_labels += 1
+                else:
+                    print('Unexpected Label:', label)
 
-                    self.bounding_boxes[img_path].append(
-                        [label, int(x1), int(y1), int(x2), int(y2)])
+                img_path = os.path.join(path, img)
+                if img_path not in self.img_paths:
+                    self.bounding_boxes[img_path] = []
+                    self.img_paths.append(img_path)
+
+                self.bounding_boxes[img_path].append([int(x1), int(y1), int(x2), int(y2), label])
 
     def __len__(self):
         return len(self.bounding_boxes)
@@ -181,9 +185,7 @@ class MyDataSet(Dataset):
         # the final mask will have no channels but we need 3 to convert to PIL image to apply transformation
         mask = np.zeros((height, width, 3))
         for bb in bounding_boxes:
-            label = bb[0]
-            pt1 = np.array(bb[1:3])
-            pt2 = np.array(bb[3:5])
+            pt1, pt2, label = np.array(bb[0:2]), np.array(bb[2:4]), bb[4]
 
             center = tuple(((pt1 + pt2) / 2).astype(np.int))
             size = tuple(((pt2 - pt1) / 2).astype(np.int))
@@ -196,15 +198,28 @@ class MyDataSet(Dataset):
 
         mask = Image.fromarray(mask.astype('uint8'))
 
-        if self.transform:
-            img = self.transform(img)
-            mask = self.transform(mask)
+        # Apply transformations to get desired dimensions
+        img = np.array(self.transform(img))
+        mask = np.array(self.transform(mask))
 
-        img = np.array(img)
-        mask = np.array(mask)
-        img = np.moveaxis(img, -1, 0)  # flip to channel*W*H
+        # flip to channel*W*H - how Pytorch expects it
+        img = np.moveaxis(img, -1, 0)
         mask = np.moveaxis(mask, -1, 0)[0]  # get rid of channel dimension
+
         return img, mask, index
 
-    def get_bounding_boxes(self, img_path):
-        return self.bounding_boxes[img_path]
+    def get_bounding_boxes(self, index):
+        img_path = self.img_paths[index]
+        img = read_image(img_path)
+
+        # we need to scale bounding boxes since we applied a transformation
+        height, width, _ = np.shape(img)
+        height_scale =  self.target_height / height
+        width_scale =  self.target_width / width
+        bbxs =  copy.deepcopy(self.bounding_boxes[img_path])
+        for bbx in bbxs:
+            bbx[0] = int(bbx[0] * width_scale)
+            bbx[1] = int(bbx[1] * height_scale)
+            bbx[2] = int(bbx[2] * width_scale)
+            bbx[3] = int(bbx[3] * height_scale)
+        return bbxs
