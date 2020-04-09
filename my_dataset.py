@@ -13,7 +13,7 @@ import util
 TESTING = False
 
 train_path = '../bit-bots-ball-dataset-2018/train'
-valid_path = '../bit-bots-ball-dataset-2018/valid'
+valid_path = '../bit-bots-ball-dataset-2018/test'
 negative_path = '../bit-bots-ball-dataset-2018/negative'
 test_path = '../bit-bots-ball-dataset-2018/test'
 

@@ -22,7 +22,7 @@ class Trainer:
         self.epochs = epochs
         self.output_folder = output_folder
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor([1.0, 1.0, 1.0])  # weigh importance of the label during training
+        weight = torch.tensor([0.1, 0.2, 1.0])  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
         self.train_losses = []

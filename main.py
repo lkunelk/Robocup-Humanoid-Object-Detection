@@ -11,7 +11,7 @@ import PIL
 def train_model():
     model = CNN(
         kernel=3,
-        num_features=16,
+        num_features=10,
         dropout=0.2)
 
     # Save directory
