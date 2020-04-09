@@ -35,7 +35,7 @@ class Trainer:
 
         loaders, datasets = initialize_loader(batch_size)
         self.train_loader, self.valid_loader, self.test_loader = loaders
-        self.train_dataset, self.valid_dataset, self.test_dataset = datasets
+        self.train_dataset, self.test_dataset = datasets
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
             len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
@@ -72,7 +72,7 @@ class Trainer:
     def test_model(self, test_type):
         dataset, loader = None, None
         if test_type == 'valid':
-            dataset, loader = self.valid_dataset, self.valid_loader
+            dataset, loader = self.train_dataset, self.valid_loader
         elif test_type == 'test':
             dataset, loader = self.test_dataset, self.test_loader
 

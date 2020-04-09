@@ -18,16 +18,27 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size, num_workers=64, shuffle=True):
-    train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
+    # train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    train_folders = ['../bit-bots-ball-dataset-2018/train/bitbots-set00-05',
+                     '../bit-bots-ball-dataset-2018/train/sequences-jasper-euro-ball-1',
+                     '../bit-bots-ball-dataset-2018/train/sequences-euro-ball-robot-1',
+                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-07',
+                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-04',
+                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-10',
+                     '../bit-bots-ball-dataset-2018/train/imageset_352',
+                     '../bit-bots-ball-dataset-2018/train/imageset_168',
+                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-08',
+                     '../bit-bots-ball-dataset-2018/train/imageset_61',
+                     '../bit-bots-ball-dataset-2018/train/sequences-misc-ball-1']
+    # valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
-    print(valid_folders)
 
-    train_folders = ['../bit-bots-ball-dataset-2018/valid/bitbots-set00-05']
-
-    train_dataset = MyDataSet(train_folders, (150, 200))
-    valid_dataset = MyDataSet(valid_folders, (150, 200))
+    full_dataset = MyDataSet(train_folders, (150, 200))
     test_dataset = MyDataSet(test_folders, (150, 200))
+
+    train_size = int(0.8 * len(full_dataset))
+    valid_size = len(full_dataset) - train_size
+    train_dataset, valid_dataset = random_split(full_dataset, [train_size, valid_size])
 
     train_loader = DataLoader(train_dataset,
                               batch_size=batch_size,
@@ -44,15 +55,15 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
 
     print('train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(train_dataset),
-        train_dataset.num_robot_labels,
-        train_dataset.num_ball_labels
+        full_dataset.num_robot_labels,
+        full_dataset.num_ball_labels
     ))
 
-    print('valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
-        len(valid_dataset),
-        valid_dataset.num_robot_labels,
-        valid_dataset.num_ball_labels
-    ))
+    # print('valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+    #     len(valid_dataset),
+    #     valid_dataset.num_robot_labels,
+    #     valid_dataset.num_ball_labels
+    # ))
 
     print('test dataset:  # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(test_dataset),
@@ -60,7 +71,7 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
         test_dataset.num_ball_labels
     ))
 
-    return (train_loader, valid_loader, test_loader), (train_dataset, valid_dataset, test_dataset)
+    return (train_loader, valid_loader, test_loader), (full_dataset, test_dataset)
 
 
 def draw_bounding_boxes(img, bbxs, colour):
@@ -141,7 +152,6 @@ class MyDataSet(Dataset):
         for path in folder_paths:
             for file in os.listdir(path):
                 if '.txt' in file:
-                    print('reading:', file)
                     file_labels = os.path.join(path, file)
                     self.read_labels(path, file_labels)
 
@@ -238,4 +248,3 @@ class MyDataSet(Dataset):
             bbxs = self.get_bounding_boxes(ind)
             img = draw_bounding_boxes(img, bbxs, 255)
             stream_image(img, delay, scale)
-            print(self.img_paths[ind])

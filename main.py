@@ -39,4 +39,4 @@ def display_dataset():
 
 
 if __name__ == '__main__':
-    display_dataset()
+    train_model()
