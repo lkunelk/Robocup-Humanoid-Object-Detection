@@ -101,6 +101,7 @@ def display_image(to_plot):
 
 
 def read_image(path):
+    # using opencv imread crashes Pytorch DataLoader for some reason
     return Image.open(path)
 
 
@@ -120,47 +121,48 @@ class MyDataSet(Dataset):
         self.bounding_boxes = {}  # image paths and their labels
         self.transform = transform
 
-        # statistics
+        # label statistics
         self.num_ball_labels = 0
         self.num_robot_labels = 0
 
         # add paths for train data with labels
         for path in folder_paths:
-            # find txt file with labels
-            file_labels = None
             for file in os.listdir(path):
                 if '.txt' in file:
+                    print('reading:', file)
                     file_labels = os.path.join(path, file)
-
-            # store full path with label for each image
-            with open(file_labels) as labels:
-                for i, line in enumerate(labels):
-                    if i > 5:  # ignore first few metadata lines
-                        label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
-
-                        img_path = os.path.join(path, img)
-
-                        if label == 'label::ball':
-                            label = Label.BALL
-                            self.num_ball_labels += 1
-                        if label == 'label::robot':
-                            label = Label.ROBOT
-                            self.num_robot_labels += 1
-
-                        if img_path not in self.img_paths:
-                            self.bounding_boxes[img_path] = []
-                            self.img_paths.append(img_path)
-
-                        self.bounding_boxes[img_path].append(
-                            [label, int(x1), int(y1), int(x2), int(y2)])
+                    self.read_labels(path, file_labels)
 
             if TESTING:
                 break  # keep dataset small
-        # add paths for negative examples (no ball in picture)
-        # if train:
-        #     for file in os.listdir(negative_path):
-        #         img_path = os.path.join(negative_path, file)
-        #         self.valid_filenames.append((img_path, [(0, 0), (0, 0)]))
+
+    def read_labels(self, path, file_labels):
+        # store full path with label for each image
+        with open(file_labels) as labels:
+            for i, line in enumerate(labels):
+                if i > 5:  # ignore first few metadata lines
+                    try:
+                        label, img, _, _, x1, y1, x2, y2, _, _, _, _ = line.split('|')
+                    except:
+                        # ignore unknown format
+                        continue
+                    img_path = os.path.join(path, img)
+
+                    if label == 'label::ball':
+                        label = Label.BALL
+                        self.num_ball_labels += 1
+                    elif label == 'label::robot':
+                        label = Label.ROBOT
+                        self.num_robot_labels += 1
+                    else:
+                        print('Unexpected Label:', label)
+
+                    if img_path not in self.img_paths:
+                        self.bounding_boxes[img_path] = []
+                        self.img_paths.append(img_path)
+
+                    self.bounding_boxes[img_path].append(
+                        [label, int(x1), int(y1), int(x2), int(y2)])
 
     def __len__(self):
         return len(self.bounding_boxes)
