@@ -1,18 +1,14 @@
 import os
 import torch
-import numpy as np
-from model import CNN, init_weights, find_bounding_boxes
-from my_dataset import initialize_loader, display_image, stream_image, draw_bounding_boxes
+from model import CNN, init_weights
+from my_dataset import initialize_loader
 from train import Trainer
-import matplotlib.pyplot as plt
-import PIL
-import cv2
 
 
 def train_model():
     model = CNN(
         kernel=3,
-        num_features=10,
+        num_features=16,
         dropout=0.2)
 
     # Save directory
