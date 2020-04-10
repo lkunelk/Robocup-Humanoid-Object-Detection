@@ -4,7 +4,7 @@ import enum
 import numpy as np
 import torch
 from model import find_batch_bounding_boxes
-from my_dataset import initialize_loader, display_image, draw_bounding_boxes
+from my_dataset import initialize_loader, display_image, draw_bounding_boxes, Label
 import matplotlib.pyplot as plt
 
 
@@ -32,6 +32,8 @@ class Trainer:
         self.valid_losses = []
         self.valid_ious = []
         self.valid_radius_losses = []
+
+        self.valid_stats = {'BALL': [], 'ROBOT': []}
 
         loaders, datasets = initialize_loader(batch_size)
         self.train_loader, self.valid_loader, self.test_loader = loaders
@@ -79,7 +81,7 @@ class Trainer:
         self.model.eval()
         start_valid = time.time()
         losses = []
-        stats = np.zeros(4, dtype=int)
+        stats = {Label.BALL: [0, 0, 0, 0], Label.ROBOT: [0, 0, 0, 0]}
         for images, masks, indexes in loader:
             images = images.cuda()
             masks = masks.cuda()
@@ -88,34 +90,48 @@ class Trainer:
             losses.append(loss.data.item())
 
             bbxs = find_batch_bounding_boxes(outputs)
-            stats += self.calculate_stats(bbxs, masks, dataset, indexes)
+            self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
-        for i in range(1):
-            print(bbxs[i][1])
-            img = draw_bounding_boxes(images[i], bbxs[i][1], (255, 0, 0))
+            # Show sample image with bounding boxes to get feel for what model is learning
+            for i in range(1):
+                img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+                img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
 
-            display_image([
-                (img, None, 'Input'),
-                (masks[i], None, 'Truth'),
-                (outputs[i], None, 'Prediction'),
-                (outputs[i][0], 'gray', 'Background'),
-                (outputs[i][1], 'gray', 'Ball'),
-                (outputs[i][2], 'gray', 'Robot')
-            ])
+                display_image([
+                    (img, None, 'Input'),
+                    (masks[i], None, 'Truth'),
+                    (outputs[i], None, 'Prediction'),
+                    (outputs[i][Label.OTHER.value], 'gray', 'Background'),
+                    (outputs[i][Label.BALL.value], 'gray', 'Ball'),
+                    (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
+                ])
+                print('ball', bbxs[i][Label.BALL.value])
+                print('robot', bbxs[i][Label.ROBOT.value])
+                input('wait:')
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
-        print('{:>20} Loss: {: 4.6f}, tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}, {} time (s): {: 4.2f}'.format(
+        print('{:>20} Loss: {: 4.6f}, , {} time (s): {: 4.2f}'.format(
             test_type,
             self.valid_losses[-1],
-            stats[self.ErrorType.TRUE_POSITIVE.value],
-            stats[self.ErrorType.FALSE_POSITIVE.value],
-            stats[self.ErrorType.TRUE_NEGATIVE.value],
-            stats[self.ErrorType.FALSE_NEGATIVE.value],
+
             test_type,
             time_elapsed))
-
+        print('{:>20} ball tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
+            '',
+            stats[0][self.ErrorType.TRUE_POSITIVE.value],
+            stats[0][self.ErrorType.FALSE_POSITIVE.value],
+            stats[0][self.ErrorType.TRUE_NEGATIVE.value],
+            stats[0][self.ErrorType.FALSE_NEGATIVE.value],
+        ))
+        print('{:>20} robot tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
+            '',
+            stats[1][self.ErrorType.TRUE_POSITIVE.value],
+            stats[1][self.ErrorType.FALSE_POSITIVE.value],
+            stats[1][self.ErrorType.TRUE_NEGATIVE.value],
+            stats[1][self.ErrorType.FALSE_NEGATIVE.value],
+        ))
 
     def train(self):
         print('Starting Training')
@@ -133,48 +149,32 @@ class Trainer:
 
         self.plot_losses()
 
-    def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_indexes):
+    def update_batch_stats(self, stats, batch_bounding_boxes, batch_masks, dataset, batch_img_indexes):
         """
         calculate true/false positive/negative
         the predicted center of bounding box needs to fall on the ground truth prediction
         """
-        # calculate stats for balls for now
-        stats = np.zeros(4, dtype=int)
-        for batch_ind, bbxs in enumerate(batch_bbxs):
-            masks = batch_masks[batch_ind]
-            img_index = img_indexes[batch_ind]
-            for pred_class in [1]:
-                bbxs = bbxs[pred_class]
-                for bbx in bbxs:
-
+        for batch_ind, bounding_boxes in enumerate(batch_bounding_boxes):
+            mask = batch_masks[batch_ind]
+            img_index = batch_img_indexes[batch_ind]
+            for pred_class in [Label.BALL, Label.ROBOT]:
+                for bbx in bounding_boxes[pred_class.value]:
                     x_center = int((bbx[0] + bbx[2]) / 2)
                     y_center = int((bbx[1] + bbx[3]) / 2)
-                    if masks[y_center][x_center] == pred_class:
+                    if mask[y_center][x_center] == pred_class.value:
                         bbx.append('tp')
-                        stats[self.ErrorType.TRUE_POSITIVE.value] += 1
-                    elif not masks[y_center][x_center] == pred_class:
+                        stats[pred_class][self.ErrorType.TRUE_POSITIVE.value] += 1
+                    else:
                         bbx.append('fp')
-                        stats[self.ErrorType.FALSE_POSITIVE.value] += 1
+                        stats[pred_class][self.ErrorType.FALSE_POSITIVE.value] += 1
 
-                        # #TEMP
-                        # img, _, _ = dataset[img_index]
-                        # img = draw_bounding_boxes(img, [bbx], (255, 0, 0))
-                        #
-                        # display_image([
-                        #     (img, None, 'Input' + str(stats[self.ErrorType.FALSE_POSITIVE.value])),
-                        #     (masks, None, 'Truth')
-                        # ])
-
-                true_bbxs = dataset[img_index]
-                if not true_bbxs and not bbxs:
-                    # our dataset does not test for true negatives at the moment,every picture we read must have a label
-                    bbxs.append('tn')
-                    stats[self.ErrorType.TRUE_NEGATIVE.value] += 1
-                elif true_bbxs and not bbxs:
-                    for _ in true_bbxs:
-                        bbxs.append('fn')
-                        stats[self.ErrorType.FALSE_NEGATIVE.value] += 1
-        return stats
+                # TODO implement tn, fn
+                # true_bounding_boxes = dataset.get_bounding_boxes(img_index)
+                # if not true_bounding_boxes and not bbxs:
+                #     stats[pred_class - 1][self.ErrorType.TRUE_NEGATIVE.value] += 1
+                # elif true_bounding_boxes and not bbxs:
+                #     for _ in true_bbxs:
+                #         stats[pred_class - 1][self.ErrorType.FALSE_NEGATIVE.value] += 1
 
     def plot_losses(self):
         plt.figure()

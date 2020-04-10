@@ -3,6 +3,7 @@ import torch.nn as nn
 import cv2
 import numpy as np
 import util
+from my_dataset import Label
 
 
 def init_weights(m):
@@ -36,11 +37,11 @@ def find_batch_bounding_boxes(outputs):
     batch_bbxs = []
 
     for output in outputs:
-        output_bbxs = []
+        output_bbxs = [[], []]
 
-        for label in range(3):
-            img = output[label]
-            output_bbxs.append(find_bounding_boxes(img))
+        for label in [Label.BALL, Label.ROBOT]:
+            img = output[label.value]
+            output_bbxs[label.value] = find_bounding_boxes(img)
 
         batch_bbxs.append(output_bbxs)
 

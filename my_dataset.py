@@ -18,18 +18,18 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 
 def initialize_loader(batch_size, num_workers=64, shuffle=True):
-    # train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    train_folders = ['../bit-bots-ball-dataset-2018/train/bitbots-set00-05',
-                     '../bit-bots-ball-dataset-2018/train/sequences-jasper-euro-ball-1',
-                     '../bit-bots-ball-dataset-2018/train/sequences-euro-ball-robot-1',
-                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-07',
-                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-04',
-                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-10',
-                     '../bit-bots-ball-dataset-2018/train/imageset_352',
-                     '../bit-bots-ball-dataset-2018/train/imageset_168',
-                     '../bit-bots-ball-dataset-2018/train/bitbots-set00-08',
-                     '../bit-bots-ball-dataset-2018/train/imageset_61',
-                     '../bit-bots-ball-dataset-2018/train/sequences-misc-ball-1']
+    train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
+    # train_folders = ['../bit-bots-ball-dataset-2018/train/bitbots-set00-05',
+    #                  '../bit-bots-ball-dataset-2018/train/sequences-jasper-euro-ball-1',
+    #                  '../bit-bots-ball-dataset-2018/train/sequences-euro-ball-robot-1',
+    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-07',
+    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-04',
+    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-10',
+    #                  '../bit-bots-ball-dataset-2018/train/imageset_352',
+    #                  '../bit-bots-ball-dataset-2018/train/imageset_168',
+    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-08',
+    #                  '../bit-bots-ball-dataset-2018/train/imageset_61',
+    #                  '../bit-bots-ball-dataset-2018/train/sequences-misc-ball-1']
     # valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
@@ -126,9 +126,9 @@ class Label(enum.Enum):
     '''
     the values correspond to which output neuron should be activated
     '''
-    OTHER = 0
-    BALL = 1
-    ROBOT = 2
+    BALL = 0
+    ROBOT = 1
+    OTHER = 2
 
 
 class MyDataSet(Dataset):
