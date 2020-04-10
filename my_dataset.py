@@ -48,17 +48,26 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
                              num_workers=num_workers,
                              shuffle=shuffle)
 
+
+    train_ball, train_robot = util.subset_label_count(train_dataset, Label.BALL, Label.ROBOT)
+    valid_ball, valid_robot = util.subset_label_count(valid_dataset, Label.BALL, Label.ROBOT)
     print('full dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(full_dataset),
         full_dataset.num_robot_labels,
         full_dataset.num_ball_labels
     ))
 
-    # print('valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
-    #     len(valid_dataset),
-    #     valid_dataset.num_robot_labels,
-    #     valid_dataset.num_ball_labels
-    # ))
+    print('   train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(train_dataset),
+        train_robot,
+        train_ball,
+    ))
+
+    print('   valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
+        len(valid_dataset),
+        valid_robot,
+        valid_ball,
+    ))
 
     print('test dataset:  # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(test_dataset),

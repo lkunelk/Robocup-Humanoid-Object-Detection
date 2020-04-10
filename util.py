@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+import PIL
 
 
 def torch_to_cv(img):
@@ -57,4 +57,20 @@ def stream_image(img, wait, scale):
 
 def read_image(path):
     # using opencv imread crashes Pytorch DataLoader for some reason
-    return Image.open(path)
+    return PIL.Image.open(path)
+
+
+def subset_label_count(subset, ball, robot):
+    ball_count = 0
+    robot_count = 0
+    for ind in subset.indices:
+        img_path = subset.dataset.img_paths[ind]
+        bbxs = subset.dataset.bounding_boxes[img_path]
+        for bbx in bbxs:
+            if bbx[4] == ball:
+                ball_count += 1
+            elif bbx[4] == robot:
+                robot_count += 1
+            else:
+                print('subset_label_count PROBLEM!')
+    return ball_count, robot_count
