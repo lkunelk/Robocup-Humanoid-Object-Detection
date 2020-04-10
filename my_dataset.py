@@ -200,7 +200,7 @@ class MyDataSet(Dataset):
 
         height, width, _ = np.array(img).shape
         # the final mask will have no channels but we need 3 to convert to PIL image to apply transformation
-        mask = np.zeros((height, width, 3))
+        mask = np.ones((height, width, 3)) * Label.OTHER.value
         for bb in bounding_boxes:
             pt1, pt2, label = np.array(bb[0:2]), np.array(bb[2:4]), bb[4]
 

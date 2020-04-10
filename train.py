@@ -92,22 +92,22 @@ class Trainer:
             bbxs = find_batch_bounding_boxes(outputs)
             self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
-            # Show sample image with bounding boxes to get feel for what model is learning
-            for i in range(1):
-                img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
-                img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
+        # Show sample image with bounding boxes to get feel for what model is learning
+        for i in range(1):
+            img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+            img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
 
-                display_image([
-                    (img, None, 'Input'),
-                    (masks[i], None, 'Truth'),
-                    (outputs[i], None, 'Prediction'),
-                    (outputs[i][Label.OTHER.value], 'gray', 'Background'),
-                    (outputs[i][Label.BALL.value], 'gray', 'Ball'),
-                    (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
-                ])
-                print('ball', bbxs[i][Label.BALL.value])
-                print('robot', bbxs[i][Label.ROBOT.value])
-                input('wait:')
+            display_image([
+                (img, None, 'Input'),
+                (masks[i], None, 'Truth'),
+                (outputs[i], None, 'Prediction'),
+                (outputs[i][Label.OTHER.value], 'gray', 'Background'),
+                (outputs[i][Label.BALL.value], 'gray', 'Ball'),
+                (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
+            ])
+            # print('ball', bbxs[i][Label.BALL.value])
+            # print('robot', bbxs[i][Label.ROBOT.value])
+            # input('wait:')
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
@@ -120,17 +120,17 @@ class Trainer:
             time_elapsed))
         print('{:>20} ball tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
             '',
-            stats[0][self.ErrorType.TRUE_POSITIVE.value],
-            stats[0][self.ErrorType.FALSE_POSITIVE.value],
-            stats[0][self.ErrorType.TRUE_NEGATIVE.value],
-            stats[0][self.ErrorType.FALSE_NEGATIVE.value],
+            stats[Label.BALL][self.ErrorType.TRUE_POSITIVE.value],
+            stats[Label.BALL][self.ErrorType.FALSE_POSITIVE.value],
+            stats[Label.BALL][self.ErrorType.TRUE_NEGATIVE.value],
+            stats[Label.BALL][self.ErrorType.FALSE_NEGATIVE.value],
         ))
         print('{:>20} robot tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
             '',
-            stats[1][self.ErrorType.TRUE_POSITIVE.value],
-            stats[1][self.ErrorType.FALSE_POSITIVE.value],
-            stats[1][self.ErrorType.TRUE_NEGATIVE.value],
-            stats[1][self.ErrorType.FALSE_NEGATIVE.value],
+            stats[Label.ROBOT][self.ErrorType.TRUE_POSITIVE.value],
+            stats[Label.ROBOT][self.ErrorType.FALSE_POSITIVE.value],
+            stats[Label.ROBOT][self.ErrorType.TRUE_NEGATIVE.value],
+            stats[Label.ROBOT][self.ErrorType.FALSE_NEGATIVE.value],
         ))
 
     def train(self):
@@ -162,10 +162,10 @@ class Trainer:
                     x_center = int((bbx[0] + bbx[2]) / 2)
                     y_center = int((bbx[1] + bbx[3]) / 2)
                     if mask[y_center][x_center] == pred_class.value:
-                        bbx.append('tp')
+                        # bbx.append('tp')
                         stats[pred_class][self.ErrorType.TRUE_POSITIVE.value] += 1
                     else:
-                        bbx.append('fp')
+                        # bbx.append('fp')
                         stats[pred_class][self.ErrorType.FALSE_POSITIVE.value] += 1
 
                 # TODO implement tn, fn
