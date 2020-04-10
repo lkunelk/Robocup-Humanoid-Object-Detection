@@ -18,3 +18,43 @@ def torch_to_cv(img):
 def cv_to_torch(img):
     assert img.shape[2]  # last dim is color channel
     return np.moveaxis(img, 2, 0)
+
+
+def draw_bounding_boxes(img, bbxs, colour):
+    img = util.torch_to_cv(img)
+    img = img.copy()  # cv2 seems to like copies to draw rectangles on
+
+    for bbx in bbxs:
+        pt0 = (int(bbx[0]), int(bbx[1]))
+        pt1 = (int(bbx[2]), int(bbx[3]))
+        img = cv2.rectangle(img, pt0, pt1, colour, 1)
+    return util.cv_to_torch(img)
+
+
+def display_image(to_plot):
+    '''
+    :param to_plot: list of tuples of the form (img [(cxhxw) numpy array], cmap [str], title [str])
+    '''
+    fig, ax = plt.subplots(3, 2, figsize=(8, 10))
+    for i, plot_info in enumerate(to_plot):
+        img = util.torch_to_cv(plot_info[0])
+        cmap = plot_info[1]
+        title = plot_info[2]
+
+        ax[i // 2, i % 2].imshow(img, cmap=cmap)
+        ax[i // 2, i % 2].set_title(title)
+    plt.show()
+
+
+def stream_image(img, wait, scale):
+    img = util.torch_to_cv(img)
+    width, height, _ = img.shape
+    img = cv2.resize(img, (height * scale, width * scale))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    cv2.imshow('my_window', img)
+    cv2.waitKey(wait)
+
+
+def read_image(path):
+    # using opencv imread crashes Pytorch DataLoader for some reason
+    return Image.open(path)
