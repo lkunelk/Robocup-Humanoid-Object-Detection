@@ -25,6 +25,9 @@ class Trainer:
         weight = torch.tensor([0.1, 0.2, 1.0])  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
+        torch.manual_seed(0)
+        np.random.seed(0)
+
         self.train_losses = []
         self.train_ious = []
         self.train_radius_losses = []
@@ -168,7 +171,7 @@ class Trainer:
                         # bbx.append('fp')
                         stats[pred_class][self.ErrorType.FALSE_POSITIVE.value] += 1
 
-                # TODO implement tn, fn
+                # Might not need to implement this for results,we can estimate fn from total # of labels
                 # true_bounding_boxes = dataset.get_bounding_boxes(img_index)
                 # if not true_bounding_boxes and not bbxs:
                 #     stats[pred_class - 1][self.ErrorType.TRUE_NEGATIVE.value] += 1
