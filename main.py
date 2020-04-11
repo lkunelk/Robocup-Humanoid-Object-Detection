@@ -6,13 +6,23 @@ from train import Trainer
 
 
 def train_model():
+    experiment = {
+        'model_kernel': 3,
+        'model_num_features': 16,
+        'model_dropout_rate': 0.2,
+        'train_class_weight': [0.2, 0.2, 0.6],  # BALL, ROBOT, OTHER
+        'train_learn_rate': 0.01,
+        'train_batch_size': 64,
+        'train_epochs': 40,
+        'output_folder': 'outputs',
+    }
     model = CNN(
-        kernel=3,
-        num_features=16,
-        dropout=0.2)
+        kernel=experiment['model_kernel'],
+        num_features=experiment['model_num_features'],
+        dropout=experiment['model_dropout_rate'])
 
     # Save directory
-    output_folder = 'outputs'
+    output_folder = experiment['output_folder']
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
@@ -20,10 +30,11 @@ def train_model():
     # model.load_state_dict(torch.load('outputs/model'))
 
     trainer = Trainer(model,
-                      learn_rate=0.01,
-                      batch_size=64,
-                      epochs=40,
-                      output_folder='outputs')
+                      learn_rate=experiment['train_learn_rate'],
+                      batch_size=experiment['train_batch_size'],
+                      epochs=experiment['train_epochs'],
+                      output_folder=experiment['output_folder'],
+                      class_weights=experiment['train_class_weight'])
     trainer.train()
 
     torch.save(model.state_dict(), 'outputs/model')

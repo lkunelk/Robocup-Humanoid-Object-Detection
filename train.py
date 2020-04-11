@@ -16,15 +16,14 @@ class Trainer:
         TRUE_NEGATIVE = 2
         FALSE_NEGATIVE = 3
 
-    def __init__(self, model, learn_rate, batch_size, epochs, output_folder):
+    def __init__(self, model, learn_rate, batch_size, epochs, class_weights, output_folder):
         self.model = model
         self.learn_rate = learn_rate
         self.batch_size = batch_size
         self.epochs = epochs
         self.output_folder = output_folder
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor([0.2, 0.3, 0.5])  # weigh importance of the label during training
-        print(weight)
+        weight = torch.tensor(class_weights)  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
         torch.manual_seed(0)
@@ -76,7 +75,7 @@ class Trainer:
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
-    def test_model(self, test_type):
+    def test_model(self, test_type, epoch):
         dataset, loader = None, None
         if test_type == 'valid':
             dataset, loader = self.train_dataset, self.valid_loader
@@ -103,7 +102,7 @@ class Trainer:
             img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
 
             display_image([
-                (img, None, 'Input'),
+                (img, None, 'Epoch: ' + str(epoch)),
                 (masks[i], None, 'Truth'),
                 (outputs[i], None, 'Prediction'),
                 (outputs[i][Label.OTHER.value], 'gray', 'Background'),
@@ -145,9 +144,9 @@ class Trainer:
         self.model.cuda()
         for epoch in range(self.epochs):
             self.train_epoch(epoch)
-            self.test_model('valid')
+            self.test_model('valid', epoch)
 
-        self.test_model('test')
+        self.test_model('test', 'test')
 
         time_elapsed = time.time() - start_train
         print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
@@ -183,6 +182,7 @@ class Trainer:
 
     def plot_losses(self):
         plt.figure()
+        plt.ylim(0.0, 0.3)
         plt.plot(self.train_losses, "ro-", label="Train")
         plt.plot(self.valid_losses, "go-", label="Validation")
         plt.legend()
