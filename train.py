@@ -23,8 +23,8 @@ class Trainer:
         self.epochs = epochs
         self.output_folder = output_folder
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor(class_weights)  # weigh importance of the label during training
-        self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
+        self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
+        self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
 
         torch.manual_seed(0)
         np.random.seed(0)
@@ -180,6 +180,17 @@ class Trainer:
                 #     for _ in true_bbxs:
                 #         stats[pred_class - 1][self.ErrorType.FALSE_NEGATIVE.value] += 1
 
+    def training_name(self):
+        name = 'lr{:.6f}_bs{}_ep{}_w{:.2f}-{:.2f}-{:.2f}'.format(
+            self.learn_rate,
+            self.batch_size,
+            self.epochs,
+            self.class_weights[0],
+            self.class_weights[1],
+            self.class_weights[2]
+        )
+        return name
+
     def plot_losses(self):
         plt.figure()
         plt.ylim(0.0, 0.3)
@@ -188,5 +199,5 @@ class Trainer:
         plt.legend()
         plt.title("Losses")
         plt.xlabel("Epochs")
-        plt.savefig(os.path.join(self.output_folder, "training_curve.png"))
+        plt.savefig(os.path.join(self.output_folder, self.training_name() + ".png"))
         plt.show()
