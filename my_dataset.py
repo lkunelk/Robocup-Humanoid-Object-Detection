@@ -1,11 +1,11 @@
 import os
 import copy
 import cv2
-import enum
 import numpy as np
 import torchvision
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, random_split
+from model import Label
 import util
 
 train_path = '../bit-bots-ball-dataset-2018/train'
@@ -48,7 +48,6 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
                              num_workers=num_workers,
                              shuffle=shuffle)
 
-
     train_ball, train_robot = util.subset_label_count(train_dataset, Label.BALL, Label.ROBOT)
     valid_ball, valid_robot = util.subset_label_count(valid_dataset, Label.BALL, Label.ROBOT)
     print('full dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
@@ -76,15 +75,6 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
     ))
 
     return (train_loader, valid_loader, test_loader), (full_dataset, test_dataset)
-
-
-class Label(enum.Enum):
-    '''
-    Defines output layers of model
-    '''
-    BALL = 0
-    ROBOT = 1
-    OTHER = 2
 
 
 class MyDataSet(Dataset):
@@ -123,7 +113,6 @@ class MyDataSet(Dataset):
                 except:
                     # ignore unknown format
                     continue
-                img_path = os.path.join(path, img)
 
                 if label == 'label::ball':
                     label = Label.BALL
@@ -145,11 +134,11 @@ class MyDataSet(Dataset):
         return len(self.bounding_boxes)
 
     def __getitem__(self, index):
-        '''
+        """
         :param index: index of data point
         :return: img ndarray (3 x w x h) RGB image
                  mask ndarray (w x h) segmentation classification of each pixel
-        '''
+        """
         img_path = self.img_paths[index]
         bounding_boxes = self.bounding_boxes[img_path]
         img = util.read_image(img_path)
@@ -165,9 +154,9 @@ class MyDataSet(Dataset):
 
             if not size == (0, 0):
                 if label == Label.BALL:
-                    mask = cv2.ellipse(mask, center, size, 0, 0, 360, (label.value), -1)
+                    mask = cv2.ellipse(mask, center, size, 0, 0, 360, label.value, -1)
                 if label == Label.ROBOT:
-                    mask = cv2.rectangle(mask, tuple(pt1), tuple(pt2), (label.value), -1)
+                    mask = cv2.rectangle(mask, tuple(pt1), tuple(pt2), label.value, -1)
 
         mask = Image.fromarray(mask.astype('uint8'))
 

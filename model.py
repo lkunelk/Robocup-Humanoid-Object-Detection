@@ -2,8 +2,15 @@ import torch
 import torch.nn as nn
 import cv2
 import numpy as np
+import enum
 import util
-from my_dataset import Label
+
+
+class Label(enum.Enum):
+    # Defines output layers of model
+    BALL = 0
+    ROBOT = 1
+    OTHER = 2
 
 
 def init_weights(m):
@@ -13,11 +20,11 @@ def init_weights(m):
 
 
 def find_bounding_boxes(img):
-    '''
+    """
     Find bounding boxes for blobs in the picture
     activations numpy array 1xWxH image values 0 to 1
     :return:  bounding boxes of blobs [x0, y0, x1, y1]
-    '''
+    """
     img = util.torch_to_cv(img)
     img = np.round(img)
     img = img.astype(np.uint8)
@@ -32,8 +39,8 @@ def find_bounding_boxes(img):
 
 
 def find_batch_bounding_boxes(outputs):
-    '''find bounding boxes for batch of outputs from the model
-    :return 3 dimensional list [batch][class prediction][bounding box]'''
+    """find bounding boxes for batch of outputs from the model
+    :return 3 dimensional list [batch][class prediction][bounding box]"""
     batch_bbxs = []
 
     for output in outputs:
@@ -49,10 +56,10 @@ def find_batch_bounding_boxes(outputs):
 
 
 class CNN(nn.Module):
-    '''
+    """
     Model reproduced from: Hamburg Bot Bot Team
     assume input image has dimensions 3x150x200
-    '''
+    """
 
     def __init__(self, kernel=3, num_features=16, dropout=0.5):
         super(CNN, self).__init__()

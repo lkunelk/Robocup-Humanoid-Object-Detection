@@ -3,8 +3,8 @@ import time
 import enum
 import numpy as np
 import torch
-from model import find_batch_bounding_boxes
-from my_dataset import initialize_loader, Label
+from model import Label, find_batch_bounding_boxes
+from my_dataset import initialize_loader
 from util import display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
@@ -158,7 +158,7 @@ class Trainer:
         """
         for batch_ind, bounding_boxes in enumerate(batch_bounding_boxes):
             mask = batch_masks[batch_ind]
-            img_index = batch_img_indexes[batch_ind]
+            # img_index = batch_img_indexes[batch_ind]
             for pred_class in [Label.BALL, Label.ROBOT]:
                 for bbx in bounding_boxes[pred_class.value]:
                     x_center = int((bbx[0] + bbx[2]) / 2)

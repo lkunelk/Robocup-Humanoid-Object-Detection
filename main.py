@@ -22,7 +22,7 @@ def train_model():
     trainer = Trainer(model,
                       learn_rate=0.01,
                       batch_size=64,
-                      epochs=20,
+                      epochs=40,
                       output_folder='outputs')
     trainer.train()
 
@@ -33,12 +33,14 @@ def display_dataset():
     [trainl, _, _], [traind, _, testd] = initialize_loader(6, num_workers=1, shuffle=False)
     traind.visualize_images(delay=10)
 
+
 def test_model():
     model = CNN(kernel=3, num_features=10, dropout=0.2)
     model.cuda()
     model.load_state_dict(torch.load('outputs/model'))
     trainer = Trainer(model, 0.01, 1, 20, 'outputs')
     trainer.test_model('test')
+
 
 if __name__ == '__main__':
     train_model()
