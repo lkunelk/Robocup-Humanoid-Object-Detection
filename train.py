@@ -4,7 +4,8 @@ import enum
 import numpy as np
 import torch
 from model import find_batch_bounding_boxes
-from my_dataset import initialize_loader, display_image, draw_bounding_boxes, Label
+from my_dataset import initialize_loader, Label
+from util import display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
 
@@ -22,7 +23,8 @@ class Trainer:
         self.epochs = epochs
         self.output_folder = output_folder
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor([0.1, 0.2, 1.0])  # weigh importance of the label during training
+        weight = torch.tensor([0.2, 0.3, 0.5])  # weigh importance of the label during training
+        print(weight)
         self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
 
         self.train_losses = []

@@ -1,5 +1,7 @@
 import numpy as np
 import PIL
+import cv2
+import matplotlib.pyplot as plt
 
 
 def torch_to_cv(img):
@@ -21,14 +23,14 @@ def cv_to_torch(img):
 
 
 def draw_bounding_boxes(img, bbxs, colour):
-    img = util.torch_to_cv(img)
+    img = torch_to_cv(img)
     img = img.copy()  # cv2 seems to like copies to draw rectangles on
 
     for bbx in bbxs:
         pt0 = (int(bbx[0]), int(bbx[1]))
         pt1 = (int(bbx[2]), int(bbx[3]))
         img = cv2.rectangle(img, pt0, pt1, colour, 1)
-    return util.cv_to_torch(img)
+    return cv_to_torch(img)
 
 
 def display_image(to_plot):
@@ -37,7 +39,7 @@ def display_image(to_plot):
     '''
     fig, ax = plt.subplots(3, 2, figsize=(8, 10))
     for i, plot_info in enumerate(to_plot):
-        img = util.torch_to_cv(plot_info[0])
+        img = torch_to_cv(plot_info[0])
         cmap = plot_info[1]
         title = plot_info[2]
 
@@ -47,7 +49,7 @@ def display_image(to_plot):
 
 
 def stream_image(img, wait, scale):
-    img = util.torch_to_cv(img)
+    img = torch_to_cv(img)
     width, height, _ = img.shape
     img = cv2.resize(img, (height * scale, width * scale))
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
