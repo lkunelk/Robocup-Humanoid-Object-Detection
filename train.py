@@ -122,20 +122,31 @@ class Trainer:
 
             test_type,
             time_elapsed))
-        print('{:>20} ball tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
-            '',
-            stats[Label.BALL][self.ErrorType.TRUE_POSITIVE.value],
-            stats[Label.BALL][self.ErrorType.FALSE_POSITIVE.value],
-            stats[Label.BALL][self.ErrorType.TRUE_NEGATIVE.value],
-            stats[Label.BALL][self.ErrorType.FALSE_NEGATIVE.value],
-        ))
-        print('{:>20} robot tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}'.format(
-            '',
-            stats[Label.ROBOT][self.ErrorType.TRUE_POSITIVE.value],
-            stats[Label.ROBOT][self.ErrorType.FALSE_POSITIVE.value],
-            stats[Label.ROBOT][self.ErrorType.TRUE_NEGATIVE.value],
-            stats[Label.ROBOT][self.ErrorType.FALSE_NEGATIVE.value],
-        ))
+
+        for label in [Label.BALL, Label.ROBOT]:
+
+            total = {}  # number of labels
+            if test_type == 'test':
+                total[Label.BALL] = dataset.num_ball_labels
+                total[Label.ROBOT] = dataset.num_robot_labels
+            elif test_type == 'valid':
+                total[Label.BALL] = dataset.num_train_ball_labels
+                total[Label.ROBOT] = dataset.num_train_robot_labels
+
+            tp = stats[label][self.ErrorType.TRUE_POSITIVE.value]
+            fp = stats[label][self.ErrorType.FALSE_POSITIVE.value]
+            tn = stats[label][self.ErrorType.TRUE_NEGATIVE.value]
+            fn = total[label] - tp  # proxy approximation for fn
+
+            precision = -1.0
+            if tp + fp > 0:
+                precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            print('{:>20} {} tp:{:6d}, fp:{:6d}, tn:{:6d}, proxy_fn:{:6d}, ' \
+                  'precision:{:.4f}, recall:{:.4f}, total {}'.format(
+                '', label.name, tp, fp, tn, fn,
+                precision, recall, total[label]
+            ))
 
     def train(self):
         print('Starting Training')
@@ -193,7 +204,7 @@ class Trainer:
 
     def plot_losses(self):
         plt.figure()
-        plt.ylim(0.0, 0.3)
+        plt.ylim(0.0, 0.2)
         plt.plot(self.train_losses, "ro-", label="Train")
         plt.plot(self.valid_losses, "go-", label="Validation")
         plt.legend()

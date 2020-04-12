@@ -48,8 +48,16 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
                              num_workers=num_workers,
                              shuffle=shuffle)
 
-    train_ball, train_robot = util.subset_label_count(train_dataset, Label.BALL, Label.ROBOT)
-    valid_ball, valid_robot = util.subset_label_count(valid_dataset, Label.BALL, Label.ROBOT)
+    full_dataset.num_train_ball_labels, full_dataset.num_train_robot_labels = util.subset_label_count(train_dataset,
+                                                                                                      Label.BALL,
+                                                                                                      Label.ROBOT)
+    valid_ball, valid_robot = util.subset_label_count(valid_dataset,
+                                                      Label.BALL,
+                                                      Label.ROBOT)
+
+    assert full_dataset.num_ball_labels == full_dataset.num_train_ball_labels + valid_ball
+    assert full_dataset.num_robot_labels == full_dataset.num_train_robot_labels + valid_robot
+
     print('full dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(full_dataset),
         full_dataset.num_robot_labels,
@@ -58,8 +66,8 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
 
     print('   train dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
         len(train_dataset),
-        train_robot,
-        train_ball,
+        full_dataset.num_train_robot_labels,
+        full_dataset.num_train_ball_labels,
     ))
 
     print('   valid dataset: # images {:>6}, # robots {:>6}, # balls {:>6}'.format(
@@ -93,6 +101,8 @@ class MyDataSet(Dataset):
         # label statistics
         self.num_ball_labels = 0
         self.num_robot_labels = 0
+        self.num_train_robot_labels = 0  # subset of full dataset
+        self.num_train_ball_labels = 0
 
         # add paths for train data with labels
         for path in folder_paths:
