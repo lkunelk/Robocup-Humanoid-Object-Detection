@@ -26,7 +26,7 @@ class Trainer:
         self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
 
-        torch.manual_seed(0)
+        torch.manual_seed(0) # TODO add seed to experiment params
         np.random.seed(0)
 
         self.train_losses = []
@@ -119,19 +119,17 @@ class Trainer:
         print('{:>20} Loss: {: 4.6f}, , {} time (s): {: 4.2f}'.format(
             test_type,
             self.valid_losses[-1],
-
             test_type,
             time_elapsed))
 
         for label in [Label.BALL, Label.ROBOT]:
-
             total = {}  # number of labels
             if test_type == 'test':
                 total[Label.BALL] = dataset.num_ball_labels
                 total[Label.ROBOT] = dataset.num_robot_labels
             elif test_type == 'valid':
-                total[Label.BALL] = dataset.num_train_ball_labels
-                total[Label.ROBOT] = dataset.num_train_robot_labels
+                total[Label.BALL] = dataset.num_ball_labels - dataset.num_train_ball_labels
+                total[Label.ROBOT] = dataset.num_robot_labels - dataset.num_train_robot_labels
 
             tp = stats[label][self.ErrorType.TRUE_POSITIVE.value]
             fp = stats[label][self.ErrorType.FALSE_POSITIVE.value]

@@ -10,12 +10,14 @@ def train_model():
         'model_kernel': 3,
         'model_num_features': 16,
         'model_dropout_rate': 0.3,
-        'train_class_weight': [0.2, 0.2, 0.6],  # BALL, ROBOT, OTHER
+        'train_class_weight': [1.0, 1.0, 1.0],  # BALL, ROBOT, OTHER
         'train_learn_rate': 0.05,
         'train_batch_size': 64,
-        'train_epochs': 15,
+        'train_epochs': 20,
         'output_folder': 'outputs',
     }
+
+    print(experiment)
 
     model = CNN(
         kernel=experiment['model_kernel'],
