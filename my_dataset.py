@@ -93,8 +93,13 @@ class MyDataSet(Dataset):
         self.bounding_boxes = {}  # image paths and their labels
         self.target_height = target_dim[0]
         self.target_width = target_dim[1]
-        self.transform = torchvision.transforms.Compose([
+        # seems useful: https://datduyng.github.io/2019/03/20/data-augmentation-for-semantic-segmantation-with-pytorch.html
+        self.img_transform = torchvision.transforms.Compose([
             torchvision.transforms.Resize(self.target_height, interpolation=Image.BILINEAR),
+            torchvision.transforms.CenterCrop((self.target_height, self.target_width)),
+        ])
+        self.mask_transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize(self.target_height, interpolation=Image.NEAREST),
             torchvision.transforms.CenterCrop((self.target_height, self.target_width)),
         ])
 
@@ -171,8 +176,8 @@ class MyDataSet(Dataset):
         mask = Image.fromarray(mask.astype('uint8'))
 
         # Apply transformations to get desired dimensions
-        img = np.array(self.transform(img))
-        mask = np.array(self.transform(mask))
+        img = np.array(self.img_transform(img))
+        mask = np.array(self.mask_transform(mask))
 
         # flip to channel*W*H - how Pytorch expects it
         img = np.moveaxis(img, -1, 0)
