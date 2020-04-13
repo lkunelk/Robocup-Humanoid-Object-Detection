@@ -203,6 +203,7 @@ class Trainer:
     def plot_losses(self):
         plt.figure()
         plt.ylim(0.0, 0.2)
+        plt.grid(True)
         plt.plot(self.train_losses, "ro-", label="Train")
         plt.plot(self.valid_losses, "go-", label="Validation")
         plt.legend()
