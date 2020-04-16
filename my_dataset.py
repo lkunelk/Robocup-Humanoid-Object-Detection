@@ -2,10 +2,11 @@ import os
 import copy
 import cv2
 import numpy as np
+import torch
 import torchvision
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader, random_split
-from model import Label
+from model import Label, find_batch_bounding_boxes
 import util
 
 train_path = '../bit-bots-ball-dataset-2018/train'
@@ -46,7 +47,7 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
     test_loader = DataLoader(test_dataset,
                              batch_size=batch_size,
                              num_workers=num_workers,
-                             shuffle=shuffle)
+                             shuffle=False)
 
     full_dataset.num_train_ball_labels, full_dataset.num_train_robot_labels = util.subset_label_count(train_dataset,
                                                                                                       Label.BALL,
@@ -201,10 +202,18 @@ class MyDataSet(Dataset):
             bbx[3] = int(bbx[3] * height_scale)
         return bbxs
 
-    def visualize_images(self, delay=10, scale=4):
+    def visualize_images(self, start=0, end=None, delay=10, scale=4, model=None):
+        if end is None:
+            end = len(self)
         self.img_paths = list(sorted(self.img_paths))  # we want names to be sorted so that they are displayed in order
-        for ind in range(len(self)):
+        for ind in range(start, end):
             img, _, _ = self[ind]
-            bbxs = self.get_bounding_boxes(ind)
-            img = util.draw_bounding_boxes(img, bbxs, 255)
+            if model:
+                outputs, _ = model(torch.tensor(np.expand_dims(img, axis=0)).float())
+                bbxs = find_batch_bounding_boxes(outputs)[0]
+                img = util.draw_bounding_boxes(img, bbxs[Label.ROBOT.value], (0, 0, 255))
+                img = util.draw_bounding_boxes(img, bbxs[Label.BALL.value], (255, 0, 0))
+            else:
+                bbxs = self.get_bounding_boxes(ind)
+                img = util.draw_bounding_boxes(img, bbxs, 255)
             util.stream_image(img, delay, scale)

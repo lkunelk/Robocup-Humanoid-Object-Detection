@@ -44,8 +44,11 @@ def train_model():
 
 
 def display_dataset():
-    [trainl, _, _], [traind, _, testd] = initialize_loader(6, num_workers=1, shuffle=False)
-    traind.visualize_images(delay=10)
+    model = CNN(kernel=3, num_features=16)
+    model.load_state_dict(torch.load('outputs/model'))
+    model.eval()
+    [trainl, _, _], [traind, testd] = initialize_loader(6, num_workers=1, shuffle=False)
+    testd.visualize_images(delay=100, model=model, start=1500)
 
 
 def test_model():
@@ -57,4 +60,4 @@ def test_model():
 
 
 if __name__ == '__main__':
-    train_model()
+    display_dataset()
