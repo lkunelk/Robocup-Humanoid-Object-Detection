@@ -16,18 +16,19 @@ class Trainer:
         TRUE_NEGATIVE = 2
         FALSE_NEGATIVE = 3
 
-    def __init__(self, model, learn_rate, batch_size, epochs, class_weights, colour_jitter, output_folder):
+    def __init__(self, model, learn_rate, batch_size, epochs, class_weights, colour_jitter, seed, output_folder):
         self.model = model
         self.learn_rate = learn_rate
         self.batch_size = batch_size
         self.epochs = epochs
         self.output_folder = output_folder
+        self.seed = seed
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
         self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
 
-        torch.manual_seed(1) # TODO add seed to experiment params
-        np.random.seed(1)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
 
         self.train_losses = []
         self.train_ious = []

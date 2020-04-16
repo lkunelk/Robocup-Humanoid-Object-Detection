@@ -7,6 +7,7 @@ from train import Trainer
 
 def train_model():
     experiment = {
+        'seed':1,
         'model_kernel': 3,
         'model_num_features': 16,
         'model_dropout_rate': 0.1,
@@ -39,6 +40,7 @@ def train_model():
                       epochs=experiment['train_epochs'],
                       colour_jitter=experiment['colour_jitter'],
                       output_folder=experiment['output_folder'],
+                      seed=experiment['seed'],
                       class_weights=experiment['train_class_weight'])
     trainer.train()
 
