@@ -16,7 +16,7 @@ class Trainer:
         TRUE_NEGATIVE = 2
         FALSE_NEGATIVE = 3
 
-    def __init__(self, model, learn_rate, batch_size, epochs, class_weights, output_folder):
+    def __init__(self, model, learn_rate, batch_size, epochs, class_weights, colour_jitter, output_folder):
         self.model = model
         self.learn_rate = learn_rate
         self.batch_size = batch_size
@@ -26,8 +26,8 @@ class Trainer:
         self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
         self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
 
-        torch.manual_seed(0) # TODO add seed to experiment params
-        np.random.seed(0)
+        torch.manual_seed(1) # TODO add seed to experiment params
+        np.random.seed(1)
 
         self.train_losses = []
         self.train_ious = []
@@ -39,7 +39,7 @@ class Trainer:
 
         self.valid_stats = {'BALL': [], 'ROBOT': []}
 
-        loaders, datasets = initialize_loader(batch_size)
+        loaders, datasets = initialize_loader(batch_size, jitter=colour_jitter)
         self.train_loader, self.valid_loader, self.test_loader = loaders
         self.train_dataset, self.test_dataset = datasets
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(

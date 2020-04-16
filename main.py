@@ -14,6 +14,7 @@ def train_model():
         'train_learn_rate': 0.01,
         'train_batch_size': 16,
         'train_epochs': 20,
+        'colour_jitter': [1.0, 0, 0, 0],  # brightness, contrast, saturation, hue
         'output_folder': 'outputs',
     }
 
@@ -30,12 +31,13 @@ def train_model():
         os.makedirs(output_folder)
 
     model.apply(init_weights)
-    # model.load_state_dict(torch.load('outputs/model'))
+    model.load_state_dict(torch.load('outputs/model'))
 
     trainer = Trainer(model,
                       learn_rate=experiment['train_learn_rate'],
                       batch_size=experiment['train_batch_size'],
                       epochs=experiment['train_epochs'],
+                      colour_jitter=experiment['colour_jitter'],
                       output_folder=experiment['output_folder'],
                       class_weights=experiment['train_class_weight'])
     trainer.train()
@@ -60,4 +62,4 @@ def test_model():
 
 
 if __name__ == '__main__':
-    display_dataset()
+    train_model()

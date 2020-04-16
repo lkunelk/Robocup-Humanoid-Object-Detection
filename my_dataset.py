@@ -13,7 +13,7 @@ train_path = '../bit-bots-ball-dataset-2018/train'
 test_path = '../bit-bots-ball-dataset-2018/test'
 
 
-def initialize_loader(batch_size, num_workers=64, shuffle=True):
+def initialize_loader(batch_size, jitter=[0, 0, 0, 0], num_workers=64, shuffle=True):
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
     # train_folders = ['../bit-bots-ball-dataset-2018/train/bitbots-set00-05',
     #                  '../bit-bots-ball-dataset-2018/train/sequences-jasper-euro-ball-1',
@@ -29,7 +29,7 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
     # valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
-    full_dataset = MyDataSet(train_folders, (150, 200))
+    full_dataset = MyDataSet(train_folders, (150, 200), jitter=jitter)
     test_dataset = MyDataSet(test_folders, (150, 200))
 
     train_size = int(0.8 * len(full_dataset))
@@ -87,7 +87,7 @@ def initialize_loader(batch_size, num_workers=64, shuffle=True):
 
 
 class MyDataSet(Dataset):
-    def __init__(self, folder_paths, target_dim):
+    def __init__(self, folder_paths, target_dim, jitter=[0, 0, 0, 0]):
 
         self.folder_paths = folder_paths  # folders of the images
         self.img_paths = []  # all individual images
@@ -96,6 +96,8 @@ class MyDataSet(Dataset):
         self.target_width = target_dim[1]
         # seems useful: https://datduyng.github.io/2019/03/20/data-augmentation-for-semantic-segmantation-with-pytorch.html
         self.img_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ColorJitter(brightness=jitter[0], contrast=jitter[1], saturation=jitter[2],
+                                               hue=jitter[3]),
             torchvision.transforms.Resize(self.target_height, interpolation=Image.BILINEAR),
             torchvision.transforms.CenterCrop((self.target_height, self.target_width)),
         ])
