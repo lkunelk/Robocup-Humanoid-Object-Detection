@@ -1,58 +1,68 @@
 import os
 import torch
-import numpy as np
-from model import CNN, init_weights, find_bounding_boxes
-from my_dataset import initialize_loader, display_image, draw_bounding_boxes
+from model import CNN, init_weights
+from my_dataset import initialize_loader
 from train import Trainer
-import matplotlib.pyplot as plt
-import PIL
 
 
 def train_model():
+    experiment = {
+        'seed': 1,
+        'model_kernel': 3,
+        'model_num_features': 16,
+        'model_dropout_rate': 0.1,
+        'train_class_weight': [.25, .15, .6],  # BALL, ROBOT, OTHER
+        'train_learn_rate': 0.01,
+        'train_weight_decay': 0,
+        'train_batch_size': 16,
+        'train_epochs': 20,
+        'colour_jitter': [1.0, 0, 0, 0],  # brightness, contrast, saturation, hue
+        'output_folder': 'outputs',
+    }
+
+    print(experiment)
+
     model = CNN(
-        kernel=3,
-        num_features=16,
-        dropout=0.2)
+        kernel=experiment['model_kernel'],
+        num_features=experiment['model_num_features'],
+        dropout=experiment['model_dropout_rate'])
 
     # Save directory
-    output_folder = 'outputs'
+    output_folder = experiment['output_folder']
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
     model.apply(init_weights)
-    # model.load_state_dict(torch.load('outputs/model'))
+    model.load_state_dict(torch.load('outputs/model'))
 
     trainer = Trainer(model,
-                      learn_rate=0.01,
-                      batch_size=64,
-                      epochs=20,
-                      output_folder='outputs')
+                      learn_rate=experiment['train_learn_rate'],
+                      weight_decay=experiment['train_weight_decay'],
+                      batch_size=experiment['train_batch_size'],
+                      epochs=experiment['train_epochs'],
+                      colour_jitter=experiment['colour_jitter'],
+                      output_folder=experiment['output_folder'],
+                      seed=experiment['seed'],
+                      class_weights=experiment['train_class_weight'])
     trainer.train()
 
     torch.save(model.state_dict(), 'outputs/model')
 
 
-def test_bounding_box():
-    train, valid, test = initialize_loader(10, shuffle=False)
-
-    model = CNN()
+def display_dataset():
+    model = CNN(kernel=3, num_features=16)
     model.load_state_dict(torch.load('outputs/model'))
     model.eval()
+    [trainl, _, _], [traind, testd] = initialize_loader(6, num_workers=1, shuffle=False)
+    testd.visualize_images(delay=100, model=model, start=1500)
 
-    img = None
 
-    for batch, mask in train:
-        inp = batch[0]
-        _, img = model(batch.float())
-        break
-
-    img = img[0][1:2].detach().numpy()  # get ball classification output as (1xHxW) numpy array
-    bbxs = find_bounding_boxes(img)
-    inp = inp.detach().numpy()
-    inp = draw_bounding_boxes(inp, bbxs, 255)
-    display_image([
-        (inp, None, 'Input'),
-        (img, 'gray', 'Output')])
+def test_model():
+    model = CNN(kernel=3, num_features=10, dropout=0.2)
+    model.cuda()
+    model.load_state_dict(torch.load('outputs/model'))
+    trainer = Trainer(model, 0.01, 1, 20, 'outputs')
+    trainer.test_model('test')
 
 
 if __name__ == '__main__':

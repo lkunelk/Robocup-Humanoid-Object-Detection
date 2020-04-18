@@ -1,0 +1,95 @@
+/home/robosoccer/datadisk/Nam/venv/bin/python /home/robosoccer/datadisk/Nam/BallDetection/main.py
+{'model_kernel': 3, 'model_num_features': 16, 'model_dropout_rate': 0.1, 'train_class_weight': [0.25, 0.15, 0.6], 'train_learn_rate': 0.01, 'train_batch_size': 16, 'train_epochs': 20, 'output_folder': 'outputs'}
+full dataset: # images   8456, # robots   4648, # balls   7331
+   train dataset: # images   6764, # robots   3682, # balls   5850
+   valid dataset: # images   1692, # robots    966, # balls   1481
+test dataset:  # images   2177, # robots   3988, # balls   2180
+Datasets Loaded! # of batches train:423 valid:106 test:137
+Starting Training
+Epoch [ 1/20]: Train Loss:  0.085221, Avg. Batch Load (s): 0.0177, Epoch (s):  31.13
+               valid Loss:  0.078507, , valid time (s):  10.91
+                     BALL tp:    70, fp:     0, tn:     0, proxy_fn:  1411, precision:1.0000, recall:0.0473, total 1481
+                     ROBOT tp:     0, fp:     0, tn:     0, proxy_fn:   966, precision:-1.0000, recall:0.0000, total 966
+Epoch [ 2/20]: Train Loss:  0.060246, Avg. Batch Load (s): 0.0164, Epoch (s):  31.86
+               valid Loss:  0.106720, , valid time (s):  11.00
+                     BALL tp:   821, fp:   148, tn:     0, proxy_fn:   660, precision:0.8473, recall:0.5544, total 1481
+                     ROBOT tp:     0, fp:     0, tn:     0, proxy_fn:   966, precision:-1.0000, recall:0.0000, total 966
+Epoch [ 3/20]: Train Loss:  0.049405, Avg. Batch Load (s): 0.0167, Epoch (s):  30.90
+               valid Loss:  0.039739, , valid time (s):  11.00
+                     BALL tp:  1134, fp:    62, tn:     0, proxy_fn:   347, precision:0.9482, recall:0.7657, total 1481
+                     ROBOT tp:   378, fp:    18, tn:     0, proxy_fn:   588, precision:0.9545, recall:0.3913, total 966
+Epoch [ 4/20]: Train Loss:  0.042581, Avg. Batch Load (s): 0.0166, Epoch (s):  31.06
+               valid Loss:  0.027284, , valid time (s):  10.51
+                     BALL tp:  1316, fp:    92, tn:     0, proxy_fn:   165, precision:0.9347, recall:0.8886, total 1481
+                     ROBOT tp:   650, fp:   398, tn:     0, proxy_fn:   316, precision:0.6202, recall:0.6729, total 966
+Epoch [ 5/20]: Train Loss:  0.037271, Avg. Batch Load (s): 0.0192, Epoch (s):  32.05
+               valid Loss:  0.022917, , valid time (s):  10.48
+                     BALL tp:  1174, fp:    93, tn:     0, proxy_fn:   307, precision:0.9266, recall:0.7927, total 1481
+                     ROBOT tp:   754, fp:    99, tn:     0, proxy_fn:   212, precision:0.8839, recall:0.7805, total 966
+Epoch [ 6/20]: Train Loss:  0.034127, Avg. Batch Load (s): 0.0194, Epoch (s):  31.32
+               valid Loss:  0.024077, , valid time (s):  11.25
+                     BALL tp:  1225, fp:    41, tn:     0, proxy_fn:   256, precision:0.9676, recall:0.8271, total 1481
+                     ROBOT tp:   738, fp:    58, tn:     0, proxy_fn:   228, precision:0.9271, recall:0.7640, total 966
+Epoch [ 7/20]: Train Loss:  0.030225, Avg. Batch Load (s): 0.0169, Epoch (s):  31.54
+               valid Loss:  0.026721, , valid time (s):  10.70
+                     BALL tp:  1347, fp:   139, tn:     0, proxy_fn:   134, precision:0.9065, recall:0.9095, total 1481
+                     ROBOT tp:   910, fp:    65, tn:     0, proxy_fn:    56, precision:0.9333, recall:0.9420, total 966
+Epoch [ 8/20]: Train Loss:  0.027385, Avg. Batch Load (s): 0.0170, Epoch (s):  30.86
+               valid Loss:  0.020471, , valid time (s):  10.43
+                     BALL tp:  1238, fp:    10, tn:     0, proxy_fn:   243, precision:0.9920, recall:0.8359, total 1481
+                     ROBOT tp:   877, fp:    65, tn:     0, proxy_fn:    89, precision:0.9310, recall:0.9079, total 966
+Epoch [ 9/20]: Train Loss:  0.025186, Avg. Batch Load (s): 0.0244, Epoch (s):  32.24
+               valid Loss:  0.022342, , valid time (s):  10.83
+                     BALL tp:  1333, fp:    20, tn:     0, proxy_fn:   148, precision:0.9852, recall:0.9001, total 1481
+                     ROBOT tp:   934, fp:   190, tn:     0, proxy_fn:    32, precision:0.8310, recall:0.9669, total 966
+Epoch [10/20]: Train Loss:  0.026885, Avg. Batch Load (s): 0.0162, Epoch (s):  31.24
+               valid Loss:  0.019606, , valid time (s):  10.77
+                     BALL tp:  1339, fp:    66, tn:     0, proxy_fn:   142, precision:0.9530, recall:0.9041, total 1481
+                     ROBOT tp:   827, fp:   345, tn:     0, proxy_fn:   139, precision:0.7056, recall:0.8561, total 966
+Epoch [11/20]: Train Loss:  0.022209, Avg. Batch Load (s): 0.0167, Epoch (s):  31.08
+               valid Loss:  0.017514, , valid time (s):  10.53
+                     BALL tp:  1296, fp:    13, tn:     0, proxy_fn:   185, precision:0.9901, recall:0.8751, total 1481
+                     ROBOT tp:   847, fp:    80, tn:     0, proxy_fn:   119, precision:0.9137, recall:0.8768, total 966
+Epoch [12/20]: Train Loss:  0.023865, Avg. Batch Load (s): 0.0170, Epoch (s):  31.18
+               valid Loss:  0.016652, , valid time (s):  10.72
+                     BALL tp:  1337, fp:    29, tn:     0, proxy_fn:   144, precision:0.9788, recall:0.9028, total 1481
+                     ROBOT tp:   841, fp:    97, tn:     0, proxy_fn:   125, precision:0.8966, recall:0.8706, total 966
+Epoch [13/20]: Train Loss:  0.021928, Avg. Batch Load (s): 0.0164, Epoch (s):  30.99
+               valid Loss:  0.016821, , valid time (s):  10.29
+                     BALL tp:  1410, fp:    44, tn:     0, proxy_fn:    71, precision:0.9697, recall:0.9521, total 1481
+                     ROBOT tp:   857, fp:    85, tn:     0, proxy_fn:   109, precision:0.9098, recall:0.8872, total 966
+Epoch [14/20]: Train Loss:  0.019248, Avg. Batch Load (s): 0.0155, Epoch (s):  30.97
+               valid Loss:  0.016663, , valid time (s):  11.23
+                     BALL tp:  1371, fp:     8, tn:     0, proxy_fn:   110, precision:0.9942, recall:0.9257, total 1481
+                     ROBOT tp:   857, fp:    32, tn:     0, proxy_fn:   109, precision:0.9640, recall:0.8872, total 966
+Epoch [15/20]: Train Loss:  0.021033, Avg. Batch Load (s): 0.0187, Epoch (s):  32.14
+               valid Loss:  0.016548, , valid time (s):  11.21
+                     BALL tp:  1400, fp:    26, tn:     0, proxy_fn:    81, precision:0.9818, recall:0.9453, total 1481
+                     ROBOT tp:   940, fp:    55, tn:     0, proxy_fn:    26, precision:0.9447, recall:0.9731, total 966
+Epoch [16/20]: Train Loss:  0.019600, Avg. Batch Load (s): 0.0158, Epoch (s):  31.05
+               valid Loss:  0.016707, , valid time (s):  10.13
+                     BALL tp:  1431, fp:    29, tn:     0, proxy_fn:    50, precision:0.9801, recall:0.9662, total 1481
+                     ROBOT tp:   940, fp:    44, tn:     0, proxy_fn:    26, precision:0.9553, recall:0.9731, total 966
+Epoch [17/20]: Train Loss:  0.019928, Avg. Batch Load (s): 0.0171, Epoch (s):  31.57
+               valid Loss:  0.014832, , valid time (s):  10.22
+                     BALL tp:  1391, fp:    15, tn:     0, proxy_fn:    90, precision:0.9893, recall:0.9392, total 1481
+                     ROBOT tp:   839, fp:    38, tn:     0, proxy_fn:   127, precision:0.9567, recall:0.8685, total 966
+Epoch [18/20]: Train Loss:  0.017721, Avg. Batch Load (s): 0.0157, Epoch (s):  30.86
+               valid Loss:  0.016142, , valid time (s):  10.51
+                     BALL tp:  1432, fp:    17, tn:     0, proxy_fn:    49, precision:0.9883, recall:0.9669, total 1481
+                     ROBOT tp:   896, fp:   104, tn:     0, proxy_fn:    70, precision:0.8960, recall:0.9275, total 966
+Epoch [19/20]: Train Loss:  0.019466, Avg. Batch Load (s): 0.0186, Epoch (s):  31.12
+               valid Loss:  0.013394, , valid time (s):  10.34
+                     BALL tp:  1439, fp:    16, tn:     0, proxy_fn:    42, precision:0.9890, recall:0.9716, total 1481
+                     ROBOT tp:   908, fp:    42, tn:     0, proxy_fn:    58, precision:0.9558, recall:0.9400, total 966
+Epoch [20/20]: Train Loss:  0.017695, Avg. Batch Load (s): 0.0196, Epoch (s):  31.43
+               valid Loss:  0.013917, , valid time (s):  10.87
+                     BALL tp:  1440, fp:    23, tn:     0, proxy_fn:    41, precision:0.9843, recall:0.9723, total 1481
+                     ROBOT tp:   830, fp:   140, tn:     0, proxy_fn:   136, precision:0.8557, recall:0.8592, total 966
+                test Loss:  0.038410, , test time (s):  11.52
+                     BALL tp:  1969, fp:    24, tn:     0, proxy_fn:   211, precision:0.9880, recall:0.9032, total 2180
+                     ROBOT tp:  2538, fp:   821, tn:     0, proxy_fn:  1450, precision:0.7556, recall:0.6364, total 3988
+Finished training in:  14.20min
+
+Process finished with exit code 0
+

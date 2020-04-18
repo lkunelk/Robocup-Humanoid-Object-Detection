@@ -3,8 +3,9 @@ import time
 import enum
 import numpy as np
 import torch
-from model import find_batch_bounding_boxes
-from my_dataset import initialize_loader, display_image, draw_bounding_boxes
+from model import Label, find_batch_bounding_boxes
+from my_dataset import initialize_loader
+from util import display_image, draw_bounding_boxes
 import matplotlib.pyplot as plt
 
 
@@ -15,15 +16,20 @@ class Trainer:
         TRUE_NEGATIVE = 2
         FALSE_NEGATIVE = 3
 
-    def __init__(self, model, learn_rate, batch_size, epochs, output_folder):
+    def __init__(self, model, learn_rate, weight_decay, batch_size, epochs, class_weights, colour_jitter, seed,
+                 output_folder):
         self.model = model
         self.learn_rate = learn_rate
         self.batch_size = batch_size
         self.epochs = epochs
         self.output_folder = output_folder
-        self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-        weight = torch.tensor([1., 1., 0.0])  # weigh importance of the label during training
-        self.criterion = torch.nn.CrossEntropyLoss(weight=weight.cuda())
+        self.seed = seed
+        self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate, weight_decay=weight_decay)
+        self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
+        self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
+
+        torch.manual_seed(seed)
+        np.random.seed(seed)
 
         self.train_losses = []
         self.train_ious = []
@@ -33,9 +39,11 @@ class Trainer:
         self.valid_ious = []
         self.valid_radius_losses = []
 
-        loaders, datasets = initialize_loader(batch_size)
+        self.valid_stats = {'BALL': [], 'ROBOT': []}
+
+        loaders, datasets = initialize_loader(batch_size, jitter=colour_jitter)
         self.train_loader, self.valid_loader, self.test_loader = loaders
-        self.train_dataset, self.valid_dataset, self.test_dataset = datasets
+        self.train_dataset, self.test_dataset = datasets
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
             len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
@@ -69,17 +77,17 @@ class Trainer:
             sum(batchload_times) / len(batchload_times),
             time_elapsed))
 
-    def test_model(self, test_type):
+    def test_model(self, test_type, epoch):
         dataset, loader = None, None
         if test_type == 'valid':
-            dataset, loader = self.valid_dataset, self.valid_loader
+            dataset, loader = self.train_dataset, self.valid_loader
         elif test_type == 'test':
             dataset, loader = self.test_dataset, self.test_loader
 
         self.model.eval()
         start_valid = time.time()
         losses = []
-        stats = np.zeros(4, dtype=int)
+        stats = {Label.BALL: [0, 0, 0, 0], Label.ROBOT: [0, 0, 0, 0]}
         for images, masks, indexes in loader:
             images = images.cuda()
             masks = masks.cuda()
@@ -88,34 +96,57 @@ class Trainer:
             losses.append(loss.data.item())
 
             bbxs = find_batch_bounding_boxes(outputs)
-            stats += self.calculate_stats(bbxs, masks, dataset, indexes)
+            self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
+        # Show sample image with bounding boxes to get feel for what model is learning
         for i in range(1):
-            print(bbxs[i][1])
-            img = draw_bounding_boxes(images[i], bbxs[i][1], (255, 0, 0))
+            img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+            img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
 
             display_image([
-                (img, None, 'Input'),
+                (img, None, 'Epoch: ' + str(epoch)),
                 (masks[i], None, 'Truth'),
                 (outputs[i], None, 'Prediction'),
-                (outputs[i][0], 'gray', 'Background'),
-                (outputs[i][1], 'gray', 'Ball'),
-                (outputs[i][2], 'gray', 'Robot')
+                (outputs[i][Label.OTHER.value], 'gray', 'Background'),
+                (outputs[i][Label.BALL.value], 'gray', 'Ball'),
+                (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
             ])
+            # print('ball', bbxs[i][Label.BALL.value])
+            # print('robot', bbxs[i][Label.ROBOT.value])
+            # input('wait:')
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
 
-        print('{:>20} Loss: {: 4.6f}, tp:{:6d}, fp:{:6d}, tn:{:6d}, fn:{:6d}, {} time (s): {: 4.2f}'.format(
+        print('{:>20} Loss: {: 4.6f}, , {} time (s): {: 4.2f}'.format(
             test_type,
             self.valid_losses[-1],
-            stats[self.ErrorType.TRUE_POSITIVE.value],
-            stats[self.ErrorType.FALSE_POSITIVE.value],
-            stats[self.ErrorType.TRUE_NEGATIVE.value],
-            stats[self.ErrorType.FALSE_NEGATIVE.value],
             test_type,
             time_elapsed))
 
+        for label in [Label.BALL, Label.ROBOT]:
+            total = {}  # number of labels
+            if test_type == 'test':
+                total[Label.BALL] = dataset.num_ball_labels
+                total[Label.ROBOT] = dataset.num_robot_labels
+            elif test_type == 'valid':
+                total[Label.BALL] = dataset.num_ball_labels - dataset.num_train_ball_labels
+                total[Label.ROBOT] = dataset.num_robot_labels - dataset.num_train_robot_labels
+
+            tp = stats[label][self.ErrorType.TRUE_POSITIVE.value]
+            fp = stats[label][self.ErrorType.FALSE_POSITIVE.value]
+            tn = stats[label][self.ErrorType.TRUE_NEGATIVE.value]
+            fn = total[label] - tp  # proxy approximation for fn
+
+            precision = -1.0
+            if tp + fp > 0:
+                precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            print('{:>20} {} tp:{:6d}, fp:{:6d}, tn:{:6d}, proxy_fn:{:6d}, ' \
+                  'precision:{:.4f}, recall:{:.4f}, total {}'.format(
+                '', label.name, tp, fp, tn, fn,
+                precision, recall, total[label]
+            ))
 
     def train(self):
         print('Starting Training')
@@ -124,64 +155,61 @@ class Trainer:
         self.model.cuda()
         for epoch in range(self.epochs):
             self.train_epoch(epoch)
-            self.test_model('valid')
+            self.test_model('valid', epoch)
 
-        self.test_model('test')
+        self.test_model('test', 'test')
 
         time_elapsed = time.time() - start_train
         print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
 
         self.plot_losses()
 
-    def calculate_stats(self, batch_bbxs, batch_masks, dataset, img_indexes):
+    def update_batch_stats(self, stats, batch_bounding_boxes, batch_masks, dataset, batch_img_indexes):
         """
         calculate true/false positive/negative
         the predicted center of bounding box needs to fall on the ground truth prediction
         """
-        # calculate stats for balls for now
-        stats = np.zeros(4, dtype=int)
-        for batch_ind, bbxs in enumerate(batch_bbxs):
-            masks = batch_masks[batch_ind]
-            img_index = img_indexes[batch_ind]
-            for pred_class in [1]:
-                bbxs = bbxs[pred_class]
-                for bbx in bbxs:
-
+        for batch_ind, bounding_boxes in enumerate(batch_bounding_boxes):
+            mask = batch_masks[batch_ind]
+            # img_index = batch_img_indexes[batch_ind]
+            for pred_class in [Label.BALL, Label.ROBOT]:
+                for bbx in bounding_boxes[pred_class.value]:
                     x_center = int((bbx[0] + bbx[2]) / 2)
                     y_center = int((bbx[1] + bbx[3]) / 2)
-                    if masks[y_center][x_center] == pred_class:
-                        bbx.append('tp')
-                        stats[self.ErrorType.TRUE_POSITIVE.value] += 1
-                    elif not masks[y_center][x_center] == pred_class:
-                        bbx.append('fp')
-                        stats[self.ErrorType.FALSE_POSITIVE.value] += 1
+                    if mask[y_center][x_center] == pred_class.value:
+                        # bbx.append('tp')
+                        stats[pred_class][self.ErrorType.TRUE_POSITIVE.value] += 1
+                    else:
+                        # bbx.append('fp')
+                        stats[pred_class][self.ErrorType.FALSE_POSITIVE.value] += 1
 
-                        # #TEMP
-                        # img, _, _ = dataset[img_index]
-                        # img = draw_bounding_boxes(img, [bbx], (255, 0, 0))
-                        #
-                        # display_image([
-                        #     (img, None, 'Input' + str(stats[self.ErrorType.FALSE_POSITIVE.value])),
-                        #     (masks, None, 'Truth')
-                        # ])
+                # Might not need to implement this for results,we can estimate fn from total # of labels
+                # true_bounding_boxes = dataset.get_bounding_boxes(img_index)
+                # if not true_bounding_boxes and not bbxs:
+                #     stats[pred_class - 1][self.ErrorType.TRUE_NEGATIVE.value] += 1
+                # elif true_bounding_boxes and not bbxs:
+                #     for _ in true_bbxs:
+                #         stats[pred_class - 1][self.ErrorType.FALSE_NEGATIVE.value] += 1
 
-                true_bbxs = dataset[img_index]
-                if not true_bbxs and not bbxs:
-                    # our dataset does not test for true negatives at the moment,every picture we read must have a label
-                    bbxs.append('tn')
-                    stats[self.ErrorType.TRUE_NEGATIVE.value] += 1
-                elif true_bbxs and not bbxs:
-                    for _ in true_bbxs:
-                        bbxs.append('fn')
-                        stats[self.ErrorType.FALSE_NEGATIVE.value] += 1
-        return stats
+    def training_name(self):
+        name = 'lr{:.6f}_bs{}_ep{}_w{:.2f}-{:.2f}-{:.2f}'.format(
+            self.learn_rate,
+            self.batch_size,
+            self.epochs,
+            self.class_weights[0],
+            self.class_weights[1],
+            self.class_weights[2]
+        )
+        return name
 
     def plot_losses(self):
         plt.figure()
+        plt.ylim(0.0, 0.2)
+        plt.grid(True)
         plt.plot(self.train_losses, "ro-", label="Train")
         plt.plot(self.valid_losses, "go-", label="Validation")
         plt.legend()
         plt.title("Losses")
         plt.xlabel("Epochs")
-        plt.savefig(os.path.join(self.output_folder, "training_curve.png"))
+        plt.savefig(os.path.join(self.output_folder, self.training_name() + ".png"))
         plt.show()
