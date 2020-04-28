@@ -40,6 +40,8 @@ class Trainer:
         self.valid_radius_losses = []
 
         self.valid_stats = {'BALL': [], 'ROBOT': []}
+        self.precision = 0
+        self.recall = 0
 
         loaders, datasets = initialize_loader(batch_size, jitter=colour_jitter)
         self.train_loader, self.valid_loader, self.test_loader = loaders
@@ -99,21 +101,21 @@ class Trainer:
             self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
         # Show sample image with bounding boxes to get feel for what model is learning
-        for i in range(1):
-            img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
-            img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
-
-            display_image([
-                (img, None, 'Epoch: ' + str(epoch)),
-                (masks[i], None, 'Truth'),
-                (outputs[i], None, 'Prediction'),
-                (outputs[i][Label.OTHER.value], 'gray', 'Background'),
-                (outputs[i][Label.BALL.value], 'gray', 'Ball'),
-                (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
-            ])
-            # print('ball', bbxs[i][Label.BALL.value])
-            # print('robot', bbxs[i][Label.ROBOT.value])
-            # input('wait:')
+        # for i in range(1):
+        #     img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+        #     img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
+        #
+        #     display_image([
+        #         (img, None, 'Epoch: ' + str(epoch)),
+        #         (masks[i], None, 'Truth'),
+        #         (outputs[i], None, 'Prediction'),
+        #         (outputs[i][Label.OTHER.value], 'gray', 'Background'),
+        #         (outputs[i][Label.BALL.value], 'gray', 'Ball'),
+        #         (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
+        #     ])
+        #     # print('ball', bbxs[i][Label.BALL.value])
+        #     # print('robot', bbxs[i][Label.ROBOT.value])
+        #     # input('wait:')
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
@@ -138,14 +140,14 @@ class Trainer:
             tn = stats[label][self.ErrorType.TRUE_NEGATIVE.value]
             fn = total[label] - tp  # proxy approximation for fn
 
-            precision = -1.0
+            self.precision = 0.0
             if tp + fp > 0:
-                precision = tp / (tp + fp)
-            recall = tp / (tp + fn)
+                self.precision = tp / (tp + fp)
+            self.recall = tp / (tp + fn)
             print('{:>20} {} tp:{:6d}, fp:{:6d}, tn:{:6d}, proxy_fn:{:6d}, ' \
                   'precision:{:.4f}, recall:{:.4f}, total {}'.format(
                 '', label.name, tp, fp, tn, fn,
-                precision, recall, total[label]
+                self.precision, self.recall, total[label]
             ))
 
     def train(self):
