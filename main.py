@@ -4,7 +4,11 @@ import numpy as np
 from model import CNN, init_weights
 from my_dataset import initialize_loader
 from train import Trainer
-
+import cv2
+import util
+import torchvision
+from PIL import Image
+from model import find_batch_bounding_boxes, Label
 
 def train_model():
     experiment = {
@@ -70,7 +74,7 @@ def train_model():
 
 
 def display_dataset():
-    model = CNN(kernel=3, num_features=8)
+    model = CNN(kernel=3, num_features=16)
     model.load_state_dict(torch.load('outputs/model'))
     model.eval()
     [trainl, _, _], [traind, testd] = initialize_loader(6, num_workers=1, shuffle=False)
@@ -85,5 +89,35 @@ def test_model():
     trainer.test_model('test')
 
 
+def webcam():
+    model = CNN()
+    model.load_state_dict(torch.load('outputs/model'))
+    # model.cuda()
+
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToPILImage(),
+        torchvision.transforms.Resize(150, interpolation=Image.BILINEAR),
+        torchvision.transforms.CenterCrop((150, 200)),
+        # torchvision.transforms.
+        torchvision.transforms.ToTensor()
+    ])
+
+    cap = cv2.VideoCapture(0)
+    while (cap.isOpened()):
+        ret, frame = cap.read()
+        if ret == True:
+            img = transform(frame)
+            img_batch = img.unsqueeze(0)
+            outputs, _ = model(img_batch)
+            bbxs = find_batch_bounding_boxes(outputs)[0]
+            img = util.draw_bounding_boxes(img, bbxs[Label.ROBOT.value], (0, 0, 255))
+            img = util.draw_bounding_boxes(img, bbxs[Label.BALL.value], (255, 0, 0))
+            util.stream_image(img, wait=25, scale=4)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
-    train_model()
+    webcam()
