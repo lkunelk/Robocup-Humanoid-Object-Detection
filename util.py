@@ -37,14 +37,15 @@ def display_image(to_plot):
     '''
     :param to_plot: list of tuples of the form (img [(cxhxw) numpy array], cmap [str], title [str])
     '''
-    fig, ax = plt.subplots(3, 2, figsize=(8, 10))
+    fig, ax = plt.subplots(1, 3, figsize=(9, 2.7))
     for i, plot_info in enumerate(to_plot):
         img = torch_to_cv(plot_info[0])
         cmap = plot_info[1]
         title = plot_info[2]
 
-        ax[i // 2, i % 2].imshow(img, cmap=cmap)
-        ax[i // 2, i % 2].set_title(title)
+        ax[i % 3].imshow(img, cmap=cmap)
+        ax[i % 3].set_title(title)
+        ax[i % 3].axis('off')
     plt.show()
 
 

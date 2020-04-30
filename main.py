@@ -10,6 +10,7 @@ import torchvision
 from PIL import Image
 from model import find_batch_bounding_boxes, Label
 
+
 def train_model():
     experiment = {
         'seed': 1,
@@ -41,7 +42,7 @@ def train_model():
             os.makedirs(output_folder)
 
         model.apply(init_weights)
-        #model.load_state_dict(torch.load('outputs/model'))
+        model.load_state_dict(torch.load('outputs/model'))
 
         trainer = Trainer(model,
                           learn_rate=experiment['train_learn_rate'],
@@ -78,15 +79,23 @@ def display_dataset():
     model.load_state_dict(torch.load('outputs/model'))
     model.eval()
     [trainl, _, _], [traind, testd] = initialize_loader(6, num_workers=1, shuffle=False)
-    testd.visualize_images(delay=10, model=model, start=0)
+    testd.visualize_images(delay=100, model=model, start=0)
 
 
 def test_model():
-    model = CNN(kernel=3, num_features=10, dropout=0.2)
+    model = CNN(kernel=3, num_features=16, dropout=0.2)
     model.cuda()
     model.load_state_dict(torch.load('outputs/model'))
-    trainer = Trainer(model, 0.01, 1, 20, 'outputs')
-    trainer.test_model('test')
+    trainer = Trainer(model,
+                      seed=0,
+                      learn_rate=0,
+                      weight_decay=0,
+                      batch_size=8,
+                      epochs=0,
+                      colour_jitter=[0, 0, 0, 0],
+                      output_folder='outputs',
+                      class_weights=[0, 0, 0])
+    trainer.test_model('test', 'test')
 
 
 def webcam():
@@ -120,4 +129,4 @@ def webcam():
 
 
 if __name__ == '__main__':
-    webcam()
+    display_dataset()

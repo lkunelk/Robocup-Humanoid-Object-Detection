@@ -26,7 +26,7 @@ class Trainer:
         self.seed = seed
         self.optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate, weight_decay=weight_decay)
         self.class_weights = torch.tensor(class_weights)  # weigh importance of the label during training
-        self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.cuda())
+        self.criterion = torch.nn.CrossEntropyLoss(weight=self.class_weights.float().cuda())
 
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -91,6 +91,8 @@ class Trainer:
         losses = []
         stats = {Label.BALL: [0, 0, 0, 0], Label.ROBOT: [0, 0, 0, 0]}
         for images, masks, indexes in loader:
+            if indexes[0] < 1900:
+                continue
             images = images.cuda()
             masks = masks.cuda()
             outputs, logits = self.model(images.float())
@@ -100,22 +102,22 @@ class Trainer:
             bbxs = find_batch_bounding_boxes(outputs)
             self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
-        # Show sample image with bounding boxes to get feel for what model is learning
-        # for i in range(1):
-        #     img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
-        #     img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
-        #
-        #     display_image([
-        #         (img, None, 'Epoch: ' + str(epoch)),
-        #         (masks[i], None, 'Truth'),
-        #         (outputs[i], None, 'Prediction'),
-        #         (outputs[i][Label.OTHER.value], 'gray', 'Background'),
-        #         (outputs[i][Label.BALL.value], 'gray', 'Ball'),
-        #         (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
-        #     ])
-        #     # print('ball', bbxs[i][Label.BALL.value])
-        #     # print('robot', bbxs[i][Label.ROBOT.value])
-        #     # input('wait:')
+            # Show sample image with bounding boxes to get feel for what model is learning
+            for i in range(1):
+                img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+                img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
+
+                display_image([
+                    (img, None, 'Input'),
+                    (masks[i], None, 'Ground Truth'),
+                    (outputs[i], None, 'Prediction'),
+                    #(outputs[i][Label.OTHER.value], 'gray', 'Background'),
+                    #(outputs[i][Label.BALL.value], 'gray', 'Ball'),
+                    #(outputs[i][Label.ROBOT.value], 'gray', 'Robot')
+                ])
+                # print('ball', bbxs[i][Label.BALL.value])
+                # print('robot', bbxs[i][Label.ROBOT.value])
+                # input('wait:')
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
