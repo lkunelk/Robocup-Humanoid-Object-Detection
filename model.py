@@ -7,57 +7,15 @@ import util
 
 
 class Label(enum.Enum):
-    # Defines output layers of model
+    # Defines output channels of model
     BALL = 0
     ROBOT = 1
     OTHER = 2
 
 
-def init_weights(m):
-    if type(m) == nn.Conv2d:
-        torch.nn.init.uniform_(m.weight, a=-0.001, b=0.001)
-        m.bias.data.fill_(0.00)
-
-
-def find_bounding_boxes(img):
-    """
-    Find bounding boxes for blobs in the picture
-    activations numpy array 1xWxH image values 0 to 1
-    :return:  bounding boxes of blobs [x0, y0, x1, y1]
-    """
-    img = util.torch_to_cv(img)
-    img = np.round(img)
-    img = img.astype(np.uint8)
-    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    bounding_boxes = []
-    for c in contours:
-        x, y, w, h = cv2.boundingRect(c)
-        bounding_boxes.append([x, y, x + w, y + h])
-
-    return bounding_boxes
-
-
-def find_batch_bounding_boxes(outputs):
-    """find bounding boxes for batch of outputs from the model
-    :return 3 dimensional list [batch][class prediction][bounding box]"""
-    batch_bbxs = []
-
-    for output in outputs:
-        output_bbxs = [[], []]
-
-        for label in [Label.BALL, Label.ROBOT]:
-            img = output[label.value]
-            output_bbxs[label.value] = find_bounding_boxes(img)
-
-        batch_bbxs.append(output_bbxs)
-
-    return batch_bbxs
-
-
 class CNN(nn.Module):
     """
-    Model reproduced from: Hamburg Bot Bot Team
+    Model reproduced from: Hamburg Bit Bot Team
     assume input image has dimensions 3x150x200
     """
 
@@ -195,3 +153,45 @@ class CNN(nn.Module):
         output = torch.nn.Softmax2d()(logit)
 
         return output, logit
+
+
+def init_weights(m):
+    if type(m) == nn.Conv2d:
+        torch.nn.init.uniform_(m.weight, a=-0.001, b=0.001)
+        m.bias.data.fill_(0.00)
+
+
+def find_batch_bounding_boxes(outputs):
+    """find bounding boxes for batch of outputs from the model
+    :return 3 dimensional list [batch][class prediction][bounding box]"""
+    batch_bbxs = []
+
+    for output in outputs:
+        output_bbxs = [[], []]
+
+        for label in [Label.BALL, Label.ROBOT]:
+            img = output[label.value]
+            output_bbxs[label.value] = find_bounding_boxes(img)
+
+        batch_bbxs.append(output_bbxs)
+
+    return batch_bbxs
+
+
+def find_bounding_boxes(img):
+    """
+    Find bounding boxes for blobs in the picture
+    :param img - numpy array 1xWxH, values 0 to 1
+    :return:  bounding boxes of blobs [x0, y0, x1, y1]
+    """
+    img = util.torch_to_cv(img)
+    img = np.round(img)
+    img = img.astype(np.uint8)
+    contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # params copied from tutorial
+
+    bounding_boxes = []
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        bounding_boxes.append([x, y, x + w, y + h])
+
+    return bounding_boxes
