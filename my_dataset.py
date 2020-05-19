@@ -15,18 +15,6 @@ test_path = '../bit-bots-ball-dataset-2018/test'
 
 def initialize_loader(batch_size, jitter=[0, 0, 0, 0], num_workers=64, shuffle=True):
     train_folders = [os.path.join(train_path, folder) for folder in os.listdir(train_path)]
-    # train_folders = ['../bit-bots-ball-dataset-2018/train/bitbots-set00-05',
-    #                  '../bit-bots-ball-dataset-2018/train/sequences-jasper-euro-ball-1',
-    #                  '../bit-bots-ball-dataset-2018/train/sequences-euro-ball-robot-1',
-    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-07',
-    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-04',
-    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-10',
-    #                  '../bit-bots-ball-dataset-2018/train/imageset_352',
-    #                  '../bit-bots-ball-dataset-2018/train/imageset_168',
-    #                  '../bit-bots-ball-dataset-2018/train/bitbots-set00-08',
-    #                  '../bit-bots-ball-dataset-2018/train/imageset_61',
-    #                  '../bit-bots-ball-dataset-2018/train/sequences-misc-ball-1']
-    # valid_folders = [os.path.join(valid_path, folder) for folder in os.listdir(valid_path)]
     test_folders = [os.path.join(test_path, folder) for folder in os.listdir(test_path)]
 
     full_dataset = MyDataSet(train_folders, (150, 200), jitter=jitter)
@@ -88,9 +76,8 @@ def initialize_loader(batch_size, jitter=[0, 0, 0, 0], num_workers=64, shuffle=T
 
 class MyDataSet(Dataset):
     def __init__(self, folder_paths, target_dim, jitter=[0, 0, 0, 0]):
-
         self.folder_paths = folder_paths  # folders of the images
-        self.img_paths = []  # all individual images
+        self.img_paths = []  # all individual image paths
         self.bounding_boxes = {}  # image paths and their labels
         self.target_height = target_dim[0]
         self.target_width = target_dim[1]
@@ -107,9 +94,9 @@ class MyDataSet(Dataset):
         ])
 
         # label statistics
-        self.num_ball_labels = 0
+        self.num_ball_labels = 0  # for full dataset
         self.num_robot_labels = 0
-        self.num_train_robot_labels = 0  # subset of full dataset
+        self.num_train_robot_labels = 0  # for subset of full dataset
         self.num_train_ball_labels = 0
 
         # add paths for train data with labels
@@ -120,7 +107,11 @@ class MyDataSet(Dataset):
                     self.read_labels(path, file_labels)
 
     def read_labels(self, path, file_labels):
-        # store full path with label for each image
+        """
+        :param path: folder containing images and label text file
+        :param file_labels: label text file
+        :return: None
+        """
         with open(file_labels) as labels:
             for i, line in enumerate(labels):
                 if i <= 5:  # ignore first few metadata lines
@@ -156,13 +147,14 @@ class MyDataSet(Dataset):
         :param index: index of data point
         :return: img ndarray (3 x w x h) RGB image
                  mask ndarray (w x h) segmentation classification of each pixel
+                 index (int) image index
         """
         img_path = self.img_paths[index]
         bounding_boxes = self.bounding_boxes[img_path]
         img = util.read_image(img_path)
 
         height, width, _ = np.array(img).shape
-        # the final mask will have no channels but we need 3 to convert to PIL image to apply transformation
+        # final mask will have no channels but we need 3 initially to convert it to PIL image to apply transformation
         mask = np.ones((height, width, 3)) * Label.OTHER.value
         for bb in bounding_boxes:
             pt1, pt2, label = np.array(bb[0:2]), np.array(bb[2:4]), bb[4]
@@ -188,6 +180,30 @@ class MyDataSet(Dataset):
 
         return img, mask, index
 
+    def visualize_images(self, start=0, end=None, delay=10, scale=4, model=None):
+        """ display dataset as video sequence
+        :param start: start frame
+        :param end: end frame
+        :param delay: time dealy between displaying frames
+        :param scale: resize frames
+        :param model: model
+        :return: None
+        """
+        if end is None:
+            end = len(self)
+        self.img_paths = list(sorted(self.img_paths))  # we want names to be sorted so that they are displayed in order
+        for ind in range(start, end):
+            img, _, _ = self[ind]
+            if model:
+                outputs, _ = model(torch.tensor(np.expand_dims(img, axis=0)).float())
+                bbxs = find_batch_bounding_boxes(outputs)[0]
+                img = util.draw_bounding_boxes(img, bbxs[Label.ROBOT.value], (0, 0, 255))
+                img = util.draw_bounding_boxes(img, bbxs[Label.BALL.value], (255, 0, 0))
+            else:
+                bbxs = self.get_bounding_boxes(ind)
+                img = util.draw_bounding_boxes(img, bbxs, 255)
+            util.stream_image(img, delay, scale)
+
     def get_bounding_boxes(self, index):
         img_path = self.img_paths[index]
         img = util.read_image(img_path)
@@ -203,19 +219,3 @@ class MyDataSet(Dataset):
             bbx[2] = int(bbx[2] * height_scale - width_offset)
             bbx[3] = int(bbx[3] * height_scale)
         return bbxs
-
-    def visualize_images(self, start=0, end=None, delay=10, scale=4, model=None):
-        if end is None:
-            end = len(self)
-        self.img_paths = list(sorted(self.img_paths))  # we want names to be sorted so that they are displayed in order
-        for ind in range(start, end):
-            img, _, _ = self[ind]
-            if model:
-                outputs, _ = model(torch.tensor(np.expand_dims(img, axis=0)).float())
-                bbxs = find_batch_bounding_boxes(outputs)[0]
-                img = util.draw_bounding_boxes(img, bbxs[Label.ROBOT.value], (0, 0, 255))
-                img = util.draw_bounding_boxes(img, bbxs[Label.BALL.value], (255, 0, 0))
-            else:
-                bbxs = self.get_bounding_boxes(ind)
-                img = util.draw_bounding_boxes(img, bbxs, 255)
-            util.stream_image(img, delay, scale)
