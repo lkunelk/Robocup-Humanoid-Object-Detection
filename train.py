@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 
 
 class Trainer:
+    '''Assume model is trained on GPU enabled computer'''
+
     class ErrorType(enum.Enum):
         TRUE_POSITIVE = 0
         FALSE_POSITIVE = 1
@@ -49,6 +51,22 @@ class Trainer:
         print('Datasets Loaded! # of batches train:{} valid:{} test:{}'.format(
             len(self.train_loader), len(self.valid_loader), len(self.test_loader)))
 
+    def train(self):
+        print('Starting Training')
+        start_train = time.time()
+
+        self.model.cuda()
+        for epoch in range(self.epochs):
+            self.train_epoch(epoch)
+            self.test_model('valid', epoch)
+
+        self.test_model('test', 'test')
+
+        time_elapsed = time.time() - start_train
+        print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
+
+        self.plot_losses()
+
     def train_epoch(self, epoch):
         self.model.train()
         start_epoch = time.time()
@@ -58,8 +76,7 @@ class Trainer:
         for images, masks, img_paths in self.train_loader:
             batchload_times.append(time.time() - t_readimg)
 
-            images = images.cuda()
-            masks = masks.cuda()
+            images, masks = images.cuda(), masks.cuda()
 
             self.optimizer.zero_grad()
             _, logits = self.model(images.float())
@@ -101,21 +118,18 @@ class Trainer:
             self.update_batch_stats(stats, bbxs, masks, dataset, indexes)
 
         # Show sample image with bounding boxes to get feel for what model is learning
-        # for i in range(1):
-        #     img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
-        #     img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
-        #
-        #     display_image([
-        #         (img, None, 'Epoch: ' + str(epoch)),
-        #         (masks[i], None, 'Truth'),
-        #         (outputs[i], None, 'Prediction'),
-        #         (outputs[i][Label.OTHER.value], 'gray', 'Background'),
-        #         (outputs[i][Label.BALL.value], 'gray', 'Ball'),
-        #         (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
-        #     ])
-        #     # print('ball', bbxs[i][Label.BALL.value])
-        #     # print('robot', bbxs[i][Label.ROBOT.value])
-        #     # input('wait:')
+        for i in range(1):
+            img = draw_bounding_boxes(images[i], bbxs[i][Label.BALL.value], (255, 0, 0))  # balls
+            img = draw_bounding_boxes(img, bbxs[i][Label.ROBOT.value], (0, 0, 255))  # robots
+
+            display_image([
+                (img, None, 'Epoch: ' + str(epoch)),
+                (masks[i], None, 'Truth'),
+                (outputs[i], None, 'Prediction'),
+                (outputs[i][Label.OTHER.value], 'gray', 'Background'),
+                (outputs[i][Label.BALL.value], 'gray', 'Ball'),
+                (outputs[i][Label.ROBOT.value], 'gray', 'Robot')
+            ])
 
         self.valid_losses.append(np.sum(losses) / len(losses))
         time_elapsed = time.time() - start_valid
@@ -150,48 +164,23 @@ class Trainer:
                 self.precision, self.recall, total[label]
             ))
 
-    def train(self):
-        print('Starting Training')
-        start_train = time.time()
-
-        self.model.cuda()
-        for epoch in range(self.epochs):
-            self.train_epoch(epoch)
-            self.test_model('valid', epoch)
-
-        self.test_model('test', 'test')
-
-        time_elapsed = time.time() - start_train
-        print('Finished training in: {: 4.2f}min'.format(time_elapsed / 60))
-
-        self.plot_losses()
-
     def update_batch_stats(self, stats, batch_bounding_boxes, batch_masks, dataset, batch_img_indexes):
         """
-        calculate true/false positive/negative
-        the predicted center of bounding box needs to fall on the ground truth prediction
+        given predicted bounding boxes and ground truth masks calculate true positive/negative
+        define successful prediction as: the center of bounding box falls on the correct mask
+        false positive/negative is not calculated as it is hard to define in multi object/label picture
         """
         for batch_ind, bounding_boxes in enumerate(batch_bounding_boxes):
             mask = batch_masks[batch_ind]
-            # img_index = batch_img_indexes[batch_ind]
             for pred_class in [Label.BALL, Label.ROBOT]:
                 for bbx in bounding_boxes[pred_class.value]:
                     x_center = int((bbx[0] + bbx[2]) / 2)
                     y_center = int((bbx[1] + bbx[3]) / 2)
                     if mask[y_center][x_center] == pred_class.value:
-                        # bbx.append('tp')
                         stats[pred_class][self.ErrorType.TRUE_POSITIVE.value] += 1
                     else:
-                        # bbx.append('fp')
                         stats[pred_class][self.ErrorType.FALSE_POSITIVE.value] += 1
 
-                # Might not need to implement this for results,we can estimate fn from total # of labels
-                # true_bounding_boxes = dataset.get_bounding_boxes(img_index)
-                # if not true_bounding_boxes and not bbxs:
-                #     stats[pred_class - 1][self.ErrorType.TRUE_NEGATIVE.value] += 1
-                # elif true_bounding_boxes and not bbxs:
-                #     for _ in true_bbxs:
-                #         stats[pred_class - 1][self.ErrorType.FALSE_NEGATIVE.value] += 1
 
     def training_name(self):
         name = 'lr{:.6f}_bs{}_ep{}_w{:.2f}-{:.2f}-{:.2f}'.format(
